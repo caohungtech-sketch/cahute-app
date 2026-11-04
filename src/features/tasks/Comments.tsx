@@ -73,7 +73,7 @@ export default function Comments({ taskId, userId, profilesById }: Props) {
       .is('parent_id', null)
       .order('created_at', { ascending: false })
       .limit(PAGE_SIZE)
-    if (error) return setError('Không tải được báo cáo.')
+    if (error) return setError('Không tải được bình luận.')
     setError(null)
     const latest = data as TaskComment[]
     mergeRoots(latest)
@@ -150,9 +150,9 @@ export default function Comments({ taskId, userId, profilesById }: Props) {
 
   return (
     <section className="mt-6">
-      <h2 className="mb-3 text-lg font-semibold">Báo cáo & bình luận</h2>
+      <h2 className="mb-3 text-lg font-semibold">Bình luận</h2>
 
-      <CommentForm taskId={taskId} userId={userId} placeholder="Báo cáo kết quả, ghi chú…" onSent={refresh} />
+      <CommentForm taskId={taskId} userId={userId} placeholder="Viết bình luận…" onSent={refresh} />
 
       {error && <ErrorBox message={error} onRetry={refresh} />}
 
@@ -193,10 +193,10 @@ export default function Comments({ taskId, userId, profilesById }: Props) {
           )
         })}
       </ul>
-      {roots.length === 0 && !error && <p className="py-6 text-center text-sm text-gray-500">Chưa có báo cáo nào.</p>}
+      {roots.length === 0 && !error && <p className="py-6 text-center text-sm text-gray-500">Chưa có bình luận nào.</p>}
       {hasMore && (
         <button className={`${btn.secondary} mt-3 w-full`} onClick={loadOlder}>
-          Xem báo cáo cũ hơn
+          Xem bình luận cũ hơn
         </button>
       )}
     </section>

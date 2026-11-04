@@ -48,7 +48,6 @@ function AppRoutes() {
           <Route index element={<TasksPage />} />
           <Route path="tasks/new" element={<TaskFormPage />} />
           <Route path="tasks/:id" element={<TaskDetailPage />} />
-          <Route path="tasks/:id/edit" element={<TaskFormPage />} />
           <Route path="team" element={<TeamPage />} />
           <Route path="account" element={<AccountPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

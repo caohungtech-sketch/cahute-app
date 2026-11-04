@@ -33,6 +33,7 @@ export default function TaskCard({ task, profilesById, canChangeStatus, showStat
           </p>
         )}
         <p className="mt-1 line-clamp-1 text-xs text-gray-500">👤 {names.length ? names.join(', ') : 'Chưa giao cho ai'}</p>
+        {task.result && <p className="mt-1 line-clamp-2 text-xs text-gray-700">✅ {task.result}</p>}
       </Link>
 
       {actions.length > 0 && (

@@ -1,15 +1,32 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useAuth } from '../auth/AuthProvider'
-import { btn, ErrorBox, Skeleton, StatusBadge, Toast } from '../components/ui'
+import { btn, ErrorBox, inputCls, Skeleton, StatusBadge, Toast } from '../components/ui'
+import { setTaskStatus, TASK_SELECT } from '../features/tasks/api'
+import AssigneeChips from '../features/tasks/AssigneeChips'
 import Comments from '../features/tasks/Comments'
 import { displayName, useProfiles } from '../lib/profiles'
 import { supabase } from '../lib/supabase'
 import { actionLabel, nextStatuses } from '../lib/taskStatus'
-import { formatDateTime } from '../lib/time'
+import { formatDateTime, fromLocalInput, toLocalInput } from '../lib/time'
 import type { Task, TaskStatus } from '../lib/types'
 
-const SELECT = 'id, team_id, title, description, status, created_by, due_at, created_at, updated_at, task_assignees(user_id)'
+interface Draft {
+  title: string
+  description: string
+  due: string // giá trị datetime-local (giờ VN)
+  result: string
+}
+
+const toDraft = (t: Task): Draft => ({
+  title: t.title,
+  description: t.description,
+  due: toLocalInput(t.due_at),
+  result: t.result,
+})
+
+const textareaCls =
+  'block w-full resize-y rounded-xl border border-gray-300 bg-white p-3 text-base focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200'
 
 export default function TaskDetailPage() {
   const { id = '' } = useParams()
@@ -17,19 +34,27 @@ export default function TaskDetailPage() {
   const { session, managedTeams } = useAuth()
   const { byId } = useProfiles()
   const [task, setTask] = useState<Task | null>(null)
+  const [draft, setDraft] = useState<Draft | null>(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const closeToast = useCallback(() => setToast(null), [])
 
   const uid = session!.user.id
+  const dirty = task && draft ? JSON.stringify(draft) !== JSON.stringify(toDraft(task)) : false
+  const dirtyRef = useRef(dirty) // để load() biết bản nháp đang được sửa
+  dirtyRef.current = dirty
 
   const load = useCallback(async () => {
     setError(null)
-    const { data, error } = await supabase.from('tasks').select(SELECT).eq('id', id).maybeSingle()
+    const { data, error } = await supabase.from('tasks').select(TASK_SELECT).eq('id', id).maybeSingle()
     if (error) setError('Không tải được công việc.')
     else if (!data) setError('Không tìm thấy công việc, hoặc bạn không còn được giao việc này.')
-    setTask((data as Task) ?? null)
+    const t = (data as Task) ?? null
+    setTask(t)
+    // Đang sửa dở thì không ghi đè bản nháp khi có cập nhật realtime.
+    setDraft((prev) => (prev && dirtyRef.current ? prev : t ? toDraft(t) : null))
     setLoading(false)
   }, [id])
 
@@ -46,7 +71,7 @@ export default function TaskDetailPage() {
   }, [id, load])
 
   if (loading) return <Skeleton rows={2} />
-  if (!task)
+  if (!task || !draft)
     return (
       <div className="space-y-3">
         <ErrorBox message={error ?? 'Không tìm thấy công việc.'} onRetry={load} />
@@ -58,26 +83,48 @@ export default function TaskDetailPage() {
 
   const isManager = managedTeams.some((t) => t.id === task.team_id)
   const isAssignee = task.task_assignees.some((a) => a.user_id === uid)
+  const canEditResult = isManager || isAssignee
   const actions = isManager || isAssignee ? nextStatuses(task.status, isManager) : []
+  const overdue = task.due_at && task.status !== 'done' && new Date(task.due_at) < new Date()
+
+  const set = (k: keyof Draft) => (e: { target: { value: string } }) => setDraft({ ...draft, [k]: e.target.value })
+
+  async function save() {
+    if (!draft!.title.trim()) return setToast('Tiêu đề không được để trống.')
+    setSaving(true)
+    // Nhân viên chỉ được gửi cột result (database cũng chặn các cột khác).
+    const fields = isManager
+      ? {
+          title: draft!.title.trim(),
+          description: draft!.description.trim(),
+          due_at: fromLocalInput(draft!.due),
+          result: draft!.result.trim(),
+        }
+      : { result: draft!.result.trim() }
+    const { data, error } = await supabase.from('tasks').update(fields).eq('id', task!.id).select(TASK_SELECT).single()
+    setSaving(false)
+    if (error) return setToast(error.message)
+    setTask(data as Task)
+    setDraft(toDraft(data as Task))
+    setToast('Đã lưu.')
+  }
 
   async function changeStatus(next: TaskStatus) {
     const prev = task!
     setTask({ ...prev, status: next })
-    const { data, error } = await supabase.from('tasks').update({ status: next }).eq('id', prev.id).select('id')
-    if (error || !data?.length) {
+    const err = await setTaskStatus(prev.id, next)
+    if (err) {
       setTask(prev)
-      setToast(error?.message ?? 'Bạn không có quyền đổi trạng thái việc này.')
+      setToast(err)
     }
   }
 
   async function remove() {
-    if (!confirm('Xoá công việc này? Toàn bộ báo cáo và ảnh liên quan cũng bị xoá.')) return
+    if (!confirm('Xoá công việc này? Toàn bộ bình luận và ảnh liên quan cũng bị xoá.')) return
     const { error } = await supabase.from('tasks').delete().eq('id', task!.id)
     if (error) setToast(error.message)
     else navigate('/', { replace: true })
   }
-
-  const overdue = task.due_at && task.status !== 'done' && new Date(task.due_at) < new Date()
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -85,36 +132,86 @@ export default function TaskDetailPage() {
         ← Công việc
       </Link>
 
-      <article className="rounded-xl bg-white p-4 ring-1 ring-gray-200">
-        <div className="flex items-start justify-between gap-2">
-          <h1 className="text-xl font-bold break-words">{task.title}</h1>
-          <StatusBadge status={task.status} />
+      <article className="space-y-4 rounded-xl bg-white p-4 ring-1 ring-gray-200">
+        <div className="flex items-start gap-2">
+          {isManager ? (
+            <input
+              className="min-h-12 w-full min-w-0 flex-1 rounded-lg border border-transparent px-2 text-xl font-bold hover:border-gray-300 focus:border-blue-600 focus:outline-none"
+              aria-label="Tiêu đề"
+              maxLength={200}
+              value={draft.title}
+              onChange={set('title')}
+            />
+          ) : (
+            <h1 className="flex-1 break-words text-xl font-bold">{task.title}</h1>
+          )}
+          <span className="pt-3">
+            <StatusBadge status={task.status} />
+          </span>
         </div>
 
-        <dl className="mt-3 space-y-1 text-sm">
-          <div className="flex gap-2">
-            <dt className="w-24 shrink-0 text-gray-500">Người làm</dt>
-            <dd>{task.task_assignees.length ? task.task_assignees.map((a) => displayName(byId.get(a.user_id))).join(', ') : 'Chưa giao cho ai'}</dd>
-          </div>
-          {task.due_at && (
-            <div className="flex gap-2">
-              <dt className="w-24 shrink-0 text-gray-500">Hạn</dt>
-              <dd className={overdue ? 'font-semibold text-red-700' : ''}>
-                {formatDateTime(task.due_at)}
-                {overdue && ' (quá hạn)'}
-              </dd>
-            </div>
-          )}
-          <div className="flex gap-2">
-            <dt className="w-24 shrink-0 text-gray-500">Người giao</dt>
-            <dd>{displayName(byId.get(task.created_by ?? ''))}</dd>
-          </div>
-        </dl>
+        <div>
+          <p className="mb-1 text-sm font-medium text-gray-500">Người làm</p>
+          <AssigneeChips task={task} canEdit={isManager} profilesById={byId} onChanged={load} onError={setToast} />
+        </div>
 
-        {task.description && <p className="mt-4 whitespace-pre-wrap break-words">{task.description}</p>}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <p className="mb-1 text-sm font-medium text-gray-500">Hạn hoàn thành</p>
+            {isManager ? (
+              <input className={inputCls} type="datetime-local" aria-label="Hạn hoàn thành" value={draft.due} onChange={set('due')} />
+            ) : (
+              <p className={overdue ? 'font-semibold text-red-700' : ''}>
+                {task.due_at ? formatDateTime(task.due_at) : '—'}
+                {overdue && ' (quá hạn)'}
+              </p>
+            )}
+          </div>
+          <div>
+            <p className="mb-1 text-sm font-medium text-gray-500">Người giao</p>
+            <p className="flex min-h-12 items-center sm:min-h-0">{displayName(byId.get(task.created_by ?? ''))}</p>
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-1 text-sm font-medium text-gray-500">Mô tả</p>
+          {isManager ? (
+            <textarea className={textareaCls} rows={3} maxLength={10000} aria-label="Mô tả" value={draft.description} onChange={set('description')} />
+          ) : (
+            <p className="whitespace-pre-wrap break-words">{task.description || '—'}</p>
+          )}
+        </div>
+
+        <div>
+          <p className="mb-1 text-sm font-medium text-gray-500">Kết quả</p>
+          {canEditResult ? (
+            <textarea
+              className={textareaCls}
+              rows={3}
+              maxLength={4000}
+              placeholder="Ghi kết quả thực hiện…"
+              aria-label="Kết quả"
+              value={draft.result}
+              onChange={set('result')}
+            />
+          ) : (
+            <p className="whitespace-pre-wrap break-words">{task.result || '—'}</p>
+          )}
+        </div>
+
+        {dirty && (
+          <div className="flex gap-2">
+            <button className={`${btn.secondary} flex-1`} onClick={() => setDraft(toDraft(task))} disabled={saving}>
+              Huỷ thay đổi
+            </button>
+            <button className={`${btn.primary} flex-1`} onClick={save} disabled={saving}>
+              {saving ? 'Đang lưu…' : 'Lưu'}
+            </button>
+          </div>
+        )}
 
         {actions.length > 0 && (
-          <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 border-t border-gray-100 pt-4">
             {actions.map((s) => (
               <button
                 key={s}
@@ -128,12 +225,9 @@ export default function TaskDetailPage() {
         )}
 
         {isManager && (
-          <div className="mt-4 flex gap-2 border-t border-gray-100 pt-4">
-            <Link to={`/tasks/${task.id}/edit`} className={`${btn.secondary} flex-1`}>
-              Sửa / đổi người
-            </Link>
-            <button className={btn.danger} onClick={remove}>
-              Xoá
+          <div className="border-t border-gray-100 pt-4">
+            <button className={`${btn.danger} w-full`} onClick={remove}>
+              Xoá công việc
             </button>
           </div>
         )}

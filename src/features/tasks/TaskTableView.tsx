@@ -85,6 +85,7 @@ export default function TaskTableView({ teamId, profilesById, canChange, onError
                   <th className="px-3 py-3 font-medium">Công việc</th>
                   <th className="px-3 py-3 font-medium">Trạng thái</th>
                   <th className="px-3 py-3 font-medium">Người làm</th>
+                  <th className="px-3 py-3 font-medium">Kết quả</th>
                   <th className="px-3 py-3 font-medium">Hạn</th>
                   <th className="px-3 py-3 font-medium">Cập nhật</th>
                   <th className="px-3 py-3 font-medium">Thao tác</th>
@@ -106,6 +107,11 @@ export default function TaskTableView({ teamId, profilesById, canChange, onError
                       </td>
                       <td className="max-w-48 px-3 py-2 text-gray-700">
                         <span className="line-clamp-2">{names(t)}</span>
+                      </td>
+                      <td className="max-w-56 px-3 py-2 text-gray-700">
+                        <span className="line-clamp-2" title={t.result}>
+                          {t.result || '—'}
+                        </span>
                       </td>
                       <td className={`whitespace-nowrap px-3 py-2 ${overdue ? 'font-semibold text-red-700' : 'text-gray-700'}`}>
                         {t.due_at ? formatDateTime(t.due_at) : '—'}

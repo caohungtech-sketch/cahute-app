@@ -60,12 +60,13 @@ Hàm SQL dùng chung (`security definer`, `stable`): `my_role()` (không đặt 
 
 ## 5. Công việc (danh sách + Kanban)
 
-- Bảng `tasks`: `id, team_id, title, description, status, created_by, due_at, created_at, updated_at`.
+- Bảng `tasks`: `id, team_id, title, description, status, result, created_by, due_at, created_at, updated_at`. `result` (Kết quả) do nhân viên được giao hoặc quản lý ghi.
+- Trang chi tiết **sửa trực tiếp** (không có trang sửa riêng): quản lý sửa tiêu đề/mô tả/hạn/kết quả, nhân viên được giao chỉ sửa kết quả; nút Lưu chỉ hiện khi có thay đổi. Người làm hiển thị dạng **chip** (quản lý: × gỡ, "+ Thêm người" trong nhóm của việc).
 - **Một việc giao được cho nhiều nhân viên**, quản lý thêm/bớt người bất cứ lúc nào: bảng `task_assignees (task_id, user_id, assigned_by, assigned_at)`, khoá chính `(task_id, user_id)`. Nhân viên bị gỡ khỏi việc mất quyền xem ngay (RLS dựa trên `task_assignees`); bình luận cũ của họ vẫn giữ.
 - `status` là enum 4 giá trị, hiển thị: `todo` = Chưa làm · `in_progress` = Đang làm · `paused` = Tạm dừng · `done` = Hoàn thành. Trạng thái là **chung cho cả việc**: bất kỳ người được giao nào đổi thì mọi người cùng thấy.
 - Quy tắc trạng thái (thực thi bằng trigger `BEFORE UPDATE`, không chỉ ở UI):
   - Việc mới tạo là `todo`. Giao/đổi người **không** làm đổi trạng thái: việc vẫn nằm ở cột Chưa làm cho tới khi nhân viên bấm "Đang làm".
-  - Nhân viên được giao: `todo → in_progress`, `in_progress ↔ paused`, `in_progress | paused → done`. Không được chuyển về `todo`, không mở lại việc `done`, không sửa cột nào khác ngoài `status` (trigger báo lỗi nếu cột khác thay đổi).
+  - Nhân viên được giao: `todo → in_progress`, `in_progress ↔ paused`, `in_progress | paused → done`. Không được chuyển về `todo`, không mở lại việc `done`, không sửa cột nào khác ngoài `status` và `result` (trigger báo lỗi nếu cột khác thay đổi).
   - Quản lý: mọi chuyển đổi, kể cả mở lại việc `done`.
 - **Danh sách = bảng có phân trang** (số trang, 10/20/50 dòng), lọc trạng thái và đếm số lượng ở server (`useTaskPage`). Màn hình < 768px mỗi dòng hiển thị thành thẻ. **Kanban** 4 cột, tải dần (`useTasks`); trên điện thoại các cột cuộn ngang có snap. Đổi trạng thái bằng nút (kéo-thả chỉ là phụ, cho desktop). Cả hai dùng chung `TASK_SELECT` và `setTaskStatus` trong `features/tasks/api.ts`.
 - Đổi trạng thái dùng optimistic update, lỗi thì hoàn tác và báo người dùng.
