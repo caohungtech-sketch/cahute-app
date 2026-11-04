@@ -1,12 +1,11 @@
 import { useCallback, useState } from 'react'
 import { Link } from 'react-router'
 import { useAuth } from '../auth/AuthProvider'
-import { btn, ErrorBox, Skeleton, Toast } from '../components/ui'
-import TaskCard from '../features/tasks/TaskCard'
-import { useTasks } from '../features/tasks/useTasks'
+import { btn, Toast } from '../components/ui'
+import KanbanView from '../features/tasks/KanbanView'
+import TaskTableView from '../features/tasks/TaskTableView'
 import { useProfiles } from '../lib/profiles'
-import { STATUS_LABEL, STATUSES } from '../lib/taskStatus'
-import type { Task, TaskStatus } from '../lib/types'
+import type { Task } from '../lib/types'
 
 type View = 'list' | 'kanban'
 
@@ -22,24 +21,16 @@ export default function TasksPage() {
   const { session, profile, managedTeams } = useAuth()
   const [view, setView] = useState<View>(readView)
   const [teamId, setTeamId] = useState('')
-  const [filter, setFilter] = useState<TaskStatus | 'all'>('all')
   const [toast, setToast] = useState<string | null>(null)
   const closeToast = useCallback(() => setToast(null), [])
-  const { tasks, loading, error, hasMore, reload, loadMore, updateStatus } = useTasks(teamId || null)
   const { byId } = useProfiles()
 
   const isManager = profile?.role === 'manager'
   const uid = session?.user.id
 
-  const canChange = (t: Task) =>
-    managedTeams.some((m) => m.id === t.team_id) || t.task_assignees.some((a) => a.user_id === uid)
-
-  const onChangeStatus = useCallback(
-    async (task: Task, next: TaskStatus) => {
-      const err = await updateStatus(task, next)
-      if (err) setToast(err)
-    },
-    [updateStatus],
+  const canChange = useCallback(
+    (t: Task) => managedTeams.some((m) => m.id === t.team_id) || t.task_assignees.some((a) => a.user_id === uid),
+    [managedTeams, uid],
   )
 
   function changeView(v: View) {
@@ -51,18 +42,7 @@ export default function TasksPage() {
     }
   }
 
-  const card = (t: Task, showStatus: boolean) => (
-    <TaskCard
-      key={t.id}
-      task={t}
-      profilesById={byId}
-      canChangeStatus={canChange(t)}
-      showStatus={showStatus}
-      onChangeStatus={onChangeStatus}
-    />
-  )
-
-  const visible = filter === 'all' ? tasks : tasks.filter((t) => t.status === filter)
+  const viewProps = { teamId: teamId || null, profilesById: byId, canChange, onError: setToast }
 
   return (
     <div>
@@ -114,58 +94,7 @@ export default function TasksPage() {
         </div>
       )}
 
-      {error && <ErrorBox message={error} onRetry={reload} />}
-
-      {loading ? (
-        <Skeleton />
-      ) : view === 'list' ? (
-        <>
-          <div className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1">
-            {(['all', ...STATUSES] as const).map((s) => {
-              const count = s === 'all' ? tasks.length : tasks.filter((t) => t.status === s).length
-              return (
-                <button
-                  key={s}
-                  className={`min-h-10 shrink-0 rounded-full px-3 text-sm ${
-                    filter === s ? 'bg-blue-700 text-white' : 'bg-white text-gray-700 ring-1 ring-gray-300'
-                  }`}
-                  onClick={() => setFilter(s)}
-                >
-                  {s === 'all' ? 'Tất cả' : STATUS_LABEL[s]} ({count})
-                </button>
-              )
-            })}
-          </div>
-          {visible.length === 0 ? (
-            <p className="py-12 text-center text-gray-500">Không có công việc nào.</p>
-          ) : (
-            <div className="grid gap-3 md:grid-cols-2">{visible.map((t) => card(t, true))}</div>
-          )}
-        </>
-      ) : (
-        // Kanban: điện thoại cuộn ngang từng cột (snap), màn hình lớn hiện đủ 4 cột.
-        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0">
-          {STATUSES.map((s) => {
-            const col = tasks.filter((t) => t.status === s)
-            return (
-              <section key={s} className="w-[85vw] max-w-xs shrink-0 snap-start rounded-xl bg-gray-100 p-2 md:w-auto md:max-w-none">
-                <h2 className="mb-2 px-1 text-sm font-semibold text-gray-700">
-                  {STATUS_LABEL[s]} <span className="font-normal text-gray-500">({col.length})</span>
-                </h2>
-                <div className="space-y-2">
-                  {col.length === 0 ? <p className="px-1 py-4 text-center text-xs text-gray-400">Trống</p> : col.map((t) => card(t, false))}
-                </div>
-              </section>
-            )
-          })}
-        </div>
-      )}
-
-      {hasMore && !loading && (
-        <button className={`${btn.secondary} mt-4 w-full`} onClick={loadMore}>
-          Tải thêm
-        </button>
-      )}
+      {view === 'list' ? <TaskTableView {...viewProps} /> : <KanbanView {...viewProps} />}
 
       <Toast message={toast} onClose={closeToast} />
     </div>

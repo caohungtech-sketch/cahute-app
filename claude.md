@@ -47,9 +47,9 @@ Lệnh: `npm run dev` · `npm run build` · `npm run lint` · `supabase migratio
 
 ## 4. Vai trò & phân quyền
 
-Hai vai trò trong `profiles.role`: `manager` | `staff`. Mỗi nhân viên thuộc một `team`; `teams.manager_id` là quản lý phụ trách.
+Hai vai trò trong `profiles.role`: `manager` | `staff`. **Một nhân viên có thể thuộc nhiều nhóm**: bảng `team_members (team_id, user_id)`; `teams.manager_id` là quản lý phụ trách. Gỡ nhân viên khỏi nhóm → trigger tự gỡ họ khỏi các việc **chưa hoàn thành** của nhóm đó.
 
-Hàm SQL dùng chung (`security definer`, `stable`): `my_role()` (không đặt tên `current_role` – trùng từ khoá Postgres), `is_manager()`, `manages_user(uid)` (true nếu người gọi là quản lý team của `uid`). Dùng các hàm này trong policy, tránh policy tự query lại bảng `profiles` gây đệ quy.
+Hàm SQL dùng chung (`security definer`, `stable`): `my_role()` (không đặt tên `current_role` – trùng từ khoá Postgres), `is_manager()`, `manages_user(uid)` (true nếu người gọi quản lý **bất kỳ** nhóm nào có `uid`), `task_team_has_member(task, uid)` (người được giao phải thuộc đúng nhóm của việc). Dùng các hàm này trong policy, tránh policy tự query lại bảng `profiles` gây đệ quy.
 
 | Dữ liệu | Quản lý | Nhân viên |
 |---|---|---|
@@ -67,10 +67,10 @@ Hàm SQL dùng chung (`security definer`, `stable`): `my_role()` (không đặt 
   - Việc mới tạo là `todo`. Giao/đổi người **không** làm đổi trạng thái: việc vẫn nằm ở cột Chưa làm cho tới khi nhân viên bấm "Đang làm".
   - Nhân viên được giao: `todo → in_progress`, `in_progress ↔ paused`, `in_progress | paused → done`. Không được chuyển về `todo`, không mở lại việc `done`, không sửa cột nào khác ngoài `status` (trigger báo lỗi nếu cột khác thay đổi).
   - Quản lý: mọi chuyển đổi, kể cả mở lại việc `done`.
-- Danh sách và Kanban dùng **chung một nguồn dữ liệu/query**, chỉ khác cách hiển thị. Kanban 4 cột; trên điện thoại các cột cuộn ngang có snap; đổi trạng thái bằng nút/menu (kéo-thả chỉ là phụ, cho desktop).
+- **Danh sách = bảng có phân trang** (số trang, 10/20/50 dòng), lọc trạng thái và đếm số lượng ở server (`useTaskPage`). Màn hình < 768px mỗi dòng hiển thị thành thẻ. **Kanban** 4 cột, tải dần (`useTasks`); trên điện thoại các cột cuộn ngang có snap. Đổi trạng thái bằng nút (kéo-thả chỉ là phụ, cho desktop). Cả hai dùng chung `TASK_SELECT` và `setTaskStatus` trong `features/tasks/api.ts`.
 - Đổi trạng thái dùng optimistic update, lỗi thì hoàn tác và báo người dùng.
-- Báo cáo kết quả: `task_comments (id, task_id, author_id, body, created_at)` + `task_attachments (id, task_id, comment_id, storage_path, width, height, size_bytes)`.
-- Danh sách luôn phân trang (`range()`), bình luận tải theo cursor.
+- Báo cáo kết quả: `task_comments (id, task_id, author_id, parent_id, body, created_at)` + `task_attachments (id, task_id, comment_id, storage_path, width, height, size_bytes)`.
+- **Trả lời bình luận chỉ 1 cấp**: `parent_id` luôn trỏ tới bình luận gốc (trigger tự quy về gốc nếu trả lời một câu trả lời). Bình luận gốc phân trang theo cursor (20/lần); câu trả lời tải kèm theo các bình luận gốc đang hiển thị.
 
 ## 6. Chat nội bộ
 

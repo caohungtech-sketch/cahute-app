@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { btn, ErrorBox, inputCls, Skeleton } from '../components/ui'
 import { displayName, useProfiles } from '../lib/profiles'
 import { supabase } from '../lib/supabase'
+import { useTeamMembers } from '../lib/teams'
 import { fromLocalInput, toLocalInput } from '../lib/time'
 import type { Task } from '../lib/types'
 
@@ -13,6 +14,7 @@ export default function TaskFormPage() {
   const navigate = useNavigate()
   const { session, managedTeams } = useAuth()
   const { list: profiles, reload: reloadProfiles } = useProfiles()
+  const { members } = useTeamMembers(managedTeams.map((t) => t.id))
 
   const [loading, setLoading] = useState(Boolean(id))
   const [title, setTitle] = useState('')
@@ -48,7 +50,9 @@ export default function TaskFormPage() {
       })
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps -- chỉ chạy khi đổi việc
 
-  const members = profiles.filter((p) => p.team_id === teamId)
+  const memberIds = members[teamId] ?? []
+  // Giữ cả người đang được giao nhưng đã rời nhóm để quản lý có thể bỏ chọn họ.
+  const candidates = profiles.filter((p) => memberIds.includes(p.id) || original.includes(p.id))
 
   function toggle(uid: string) {
     setAssignees((prev) => (prev.includes(uid) ? prev.filter((x) => x !== uid) : [...prev, uid]))
@@ -142,7 +146,7 @@ export default function TaskFormPage() {
 
         <fieldset>
           <legend className="mb-1 text-sm font-medium">Giao cho ({assignees.length})</legend>
-          {members.length === 0 ? (
+          {candidates.length === 0 ? (
             <p className="text-sm text-gray-500">
               Nhóm chưa có nhân viên.{' '}
               <Link to="/team" className="text-blue-700 underline">
@@ -151,7 +155,7 @@ export default function TaskFormPage() {
             </p>
           ) : (
             <div className="divide-y divide-gray-100 rounded-xl bg-white ring-1 ring-gray-200">
-              {members.map((p) => (
+              {candidates.map((p) => (
                 <label key={p.id} className="flex min-h-12 items-center gap-3 px-3">
                   <input type="checkbox" className="h-5 w-5" checked={assignees.includes(p.id)} onChange={() => toggle(p.id)} />
                   <span className="flex-1">{displayName(p)}</span>

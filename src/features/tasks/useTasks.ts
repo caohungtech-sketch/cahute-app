@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import type { Task, TaskStatus } from '../../lib/types'
+import { setTaskStatus, TASK_SELECT } from './api'
 
 const PAGE_SIZE = 50
-const SELECT = 'id, team_id, title, description, status, created_by, due_at, created_at, updated_at, task_assignees(user_id)'
 
-// Danh sách + Kanban dùng chung hook này. RLS tự lọc: nhân viên chỉ nhận việc được giao.
+// Dữ liệu cho Kanban: tải dần (Tải thêm). RLS tự lọc: nhân viên chỉ nhận việc được giao.
 export function useTasks(teamId: string | null) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
@@ -15,7 +15,7 @@ export function useTasks(teamId: string | null) {
 
   const fetchRange = useCallback(
     async (from: number, to: number) => {
-      let q = supabase.from('tasks').select(SELECT).order('updated_at', { ascending: false }).range(from, to)
+      let q = supabase.from('tasks').select(TASK_SELECT).order('updated_at', { ascending: false }).range(from, to)
       if (teamId) q = q.eq('team_id', teamId)
       return q
     },
@@ -47,15 +47,33 @@ export function useTasks(teamId: string | null) {
     reload()
   }, [reload])
 
-  // Realtime: có thay đổi thì tải lại (gộp nhiều sự kiện trong 300 ms).
+  useTasksRealtime(`kanban-${teamId ?? 'all'}`, reload)
+
+  // Optimistic update; trả về thông báo lỗi (nếu có) sau khi đã hoàn tác.
+  const updateStatus = useCallback(async (task: Task, next: TaskStatus): Promise<string | null> => {
+    setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: next } : t)))
+    const err = await setTaskStatus(task.id, next)
+    if (err) setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: task.status } : t)))
+    return err
+  }, [])
+
+  return { tasks, loading, error, hasMore, reload, loadMore, updateStatus }
+}
+
+// Có thay đổi ở tasks / task_assignees thì gọi onChange (gộp sự kiện trong 300 ms).
+// Dùng ref để kênh chỉ đăng ký một lần, kể cả khi onChange đổi (chuyển trang, đổi bộ lọc…).
+export function useTasksRealtime(name: string, onChange: () => void) {
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
+
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined
     const schedule = () => {
       clearTimeout(timer)
-      timer = setTimeout(reload, 300)
+      timer = setTimeout(() => onChangeRef.current(), 300)
     }
     const channel = supabase
-      .channel(`tasks-${teamId ?? 'all'}`)
+      .channel(name)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, schedule)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'task_assignees' }, schedule)
       .subscribe()
@@ -63,18 +81,5 @@ export function useTasks(teamId: string | null) {
       clearTimeout(timer)
       supabase.removeChannel(channel)
     }
-  }, [reload, teamId])
-
-  // Optimistic update; trả về thông báo lỗi (nếu có) sau khi đã hoàn tác.
-  const updateStatus = useCallback(async (task: Task, next: TaskStatus): Promise<string | null> => {
-    setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: next } : t)))
-    const { data, error } = await supabase.from('tasks').update({ status: next }).eq('id', task.id).select('id')
-    if (error || !data?.length) {
-      setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: task.status } : t)))
-      return error?.message ?? 'Bạn không có quyền đổi trạng thái việc này.'
-    }
-    return null
-  }, [])
-
-  return { tasks, loading, error, hasMore, reload, loadMore, updateStatus }
+  }, [name])
 }

@@ -1,20 +1,23 @@
-import { useState, type FormEvent } from 'react'
+import { useCallback, useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { btn, ErrorBox, inputCls, Toast } from '../components/ui'
 import { displayName, useProfiles } from '../lib/profiles'
 import { supabase } from '../lib/supabase'
+import { useTeamMembers } from '../lib/teams'
 
-// Quản lý: tạo nhóm, thêm/bớt nhân viên vào nhóm mình phụ trách.
+// Quản lý: tạo nhóm, thêm/bớt nhân viên. Một nhân viên có thể thuộc nhiều nhóm.
 export default function TeamPage() {
   const { session, profile, managedTeams, reload: reloadAuth } = useAuth()
-  const { list: profiles, reload: reloadProfiles } = useProfiles()
+  const { list: profiles, byId } = useProfiles()
+  const { members, reload: reloadMembers } = useTeamMembers(managedTeams.map((t) => t.id))
   const [newTeam, setNewTeam] = useState('')
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const closeToast = useCallback(() => setToast(null), [])
 
   if (profile?.role !== 'manager') return <ErrorBox message="Chỉ quản lý mới dùng được trang này." />
 
-  const unassigned = profiles.filter((p) => !p.team_id && p.role === 'staff')
+  const staff = profiles.filter((p) => p.role === 'staff')
 
   async function createTeam(e: FormEvent) {
     e.preventDefault()
@@ -26,10 +29,17 @@ export default function TeamPage() {
     await reloadAuth()
   }
 
-  async function setTeam(userId: string, teamId: string | null) {
-    const { error } = await supabase.from('profiles').update({ team_id: teamId }).eq('id', userId)
+  async function addMember(teamId: string, userId: string) {
+    const { error } = await supabase.from('team_members').insert({ team_id: teamId, user_id: userId })
     if (error) setToast(error.message)
-    await reloadProfiles()
+    await reloadMembers()
+  }
+
+  async function removeMember(teamId: string, userId: string) {
+    if (!confirm('Gỡ nhân viên khỏi nhóm? Họ cũng bị gỡ khỏi các việc chưa hoàn thành của nhóm này.')) return
+    const { error } = await supabase.from('team_members').delete().eq('team_id', teamId).eq('user_id', userId)
+    if (error) setToast(error.message)
+    await reloadMembers()
   }
 
   return (
@@ -37,33 +47,34 @@ export default function TeamPage() {
       <h1 className="text-xl font-bold">Nhóm của tôi</h1>
 
       {managedTeams.map((team) => {
-        const members = profiles.filter((p) => p.team_id === team.id && p.id !== team.manager_id)
+        const ids = members[team.id] ?? []
+        const notInTeam = staff.filter((p) => !ids.includes(p.id))
         return (
           <section key={team.id} className="rounded-xl bg-white p-4 ring-1 ring-gray-200">
             <h2 className="mb-2 font-semibold">
-              {team.name} <span className="font-normal text-gray-500">({members.length} nhân viên)</span>
+              {team.name} <span className="font-normal text-gray-500">({ids.length} thành viên)</span>
             </h2>
-            {members.length === 0 && <p className="text-sm text-gray-500">Chưa có nhân viên.</p>}
+            {ids.length === 0 && <p className="text-sm text-gray-500">Chưa có thành viên.</p>}
             <ul className="divide-y divide-gray-100">
-              {members.map((p) => (
-                <li key={p.id} className="flex min-h-12 items-center gap-2">
-                  <span className="flex-1">{displayName(p)}</span>
-                  <button className="min-h-12 px-3 text-sm text-red-700" onClick={() => setTeam(p.id, null)}>
+              {ids.map((uid) => (
+                <li key={uid} className="flex min-h-12 items-center gap-2">
+                  <span className="flex-1">{displayName(byId.get(uid))}</span>
+                  <button className="min-h-12 px-3 text-sm text-red-700" onClick={() => removeMember(team.id, uid)}>
                     Gỡ khỏi nhóm
                   </button>
                 </li>
               ))}
             </ul>
 
-            {unassigned.length > 0 && (
+            {notInTeam.length > 0 && (
               <select
                 className={`${inputCls} mt-3`}
                 value=""
-                onChange={(e) => e.target.value && setTeam(e.target.value, team.id)}
+                onChange={(e) => e.target.value && addMember(team.id, e.target.value)}
                 aria-label={`Thêm nhân viên vào ${team.name}`}
               >
-                <option value="">+ Thêm nhân viên chưa có nhóm…</option>
-                {unassigned.map((p) => (
+                <option value="">+ Thêm nhân viên vào nhóm…</option>
+                {notInTeam.map((p) => (
                   <option key={p.id} value={p.id}>
                     {displayName(p)}
                   </option>
@@ -92,10 +103,10 @@ export default function TeamPage() {
       </form>
 
       <p className="text-xs text-gray-500">
-        Nhân viên tự đăng ký tài khoản trên app, sau đó sẽ xuất hiện trong danh sách “chưa có nhóm” để bạn thêm vào.
+        Nhân viên tự đăng ký tài khoản trên app, sau đó bạn thêm họ vào một hoặc nhiều nhóm ở đây.
       </p>
 
-      <Toast message={toast} onClose={() => setToast(null)} />
+      <Toast message={toast} onClose={closeToast} />
     </div>
   )
 }

@@ -5,7 +5,6 @@ export interface Profile {
   id: string
   full_name: string
   role: Role
-  team_id: string | null
   avatar_path: string | null
 }
 
@@ -39,6 +38,7 @@ export interface TaskComment {
   id: string
   task_id: string
   author_id: string | null
+  parent_id: string | null
   body: string
   created_at: string
   task_attachments: Attachment[]
