@@ -8,14 +8,14 @@ import type { Profile, Task, TaskStatus } from '../../lib/types'
 import TaskCard from './TaskCard'
 import { useTaskPage, type StatusFilter } from './useTaskPage'
 import { useIsMobile } from '../../lib/useIsMobile'
+import QuickSearch from './QuickSearch'
 
 const PAGE_SIZES = [10, 20, 50]
 
-// Điện thoại: tab theo thứ tự, mặc định "Chưa làm"; chỉ tab "Tất cả" phân trang 10 việc/trang.
-const MOBILE_TABS: StatusFilter[] = ['todo', 'in_progress', 'paused', 'done', 'all']
+// Điện thoại: 4 tab trạng thái (mặc định "Chưa làm"), không có "Tất cả"; mỗi tab 20 việc/trang,
+// chỉ hiện nút chuyển trang khi vượt quá 20.
 const DESKTOP_TABS: StatusFilter[] = ['all', ...STATUSES]
-const MOBILE_ALL_PAGE_SIZE = 10
-const MOBILE_STATUS_PAGE_SIZE = 50 // tab trạng thái: hiện liền một trang; chỉ hiện nút trang nếu vượt quá
+const MOBILE_PAGE_SIZE = 20
 
 interface Props {
   teamId: string | null
@@ -29,7 +29,7 @@ export default function TaskTableView({ teamId, profilesById, canChange, onError
   const [status, setStatus] = useState<StatusFilter>(isMobile ? 'todo' : 'all')
   const [page, setPage] = useState(0)
   const [desktopPageSize, setPageSize] = useState(20)
-  const pageSize = isMobile ? (status === 'all' ? MOBILE_ALL_PAGE_SIZE : MOBILE_STATUS_PAGE_SIZE) : desktopPageSize
+  const pageSize = isMobile ? MOBILE_PAGE_SIZE : desktopPageSize
   const { rows, counts, total, loading, error, reload, updateStatus } = useTaskPage(teamId, status, page, pageSize)
 
   const pages = Math.max(1, Math.ceil(total / pageSize))
@@ -37,6 +37,10 @@ export default function TaskTableView({ teamId, profilesById, canChange, onError
 
   // Đổi bộ lọc → về trang 1; số trang giảm (việc bị xoá…) → lùi về trang cuối.
   useEffect(() => setPage(0), [teamId, status, pageSize])
+  // Chuyển từ màn hình lớn sang điện thoại khi đang ở "Tất cả" → về "Chưa làm" (điện thoại không có tab này).
+  useEffect(() => {
+    if (isMobile && status === 'all') setStatus('todo')
+  }, [isMobile, status])
   useEffect(() => {
     if (!loading && page > pages - 1) setPage(pages - 1)
   }, [loading, page, pages])
@@ -51,19 +55,42 @@ export default function TaskTableView({ teamId, profilesById, canChange, onError
 
   return (
     <div>
-      <div className="-mx-4 mb-3 flex gap-1.5 overflow-x-auto px-4 pb-1 md:mx-0 md:gap-2 md:px-0">
-        {(isMobile ? MOBILE_TABS : DESKTOP_TABS).map((s) => (
-          <button
-            key={s}
-            className={`min-h-9 shrink-0 rounded-full px-3 text-[13px] md:min-h-10 md:text-sm ${
-              status === s ? 'bg-blue-700 text-white' : 'bg-white text-gray-700 ring-1 ring-gray-300'
-            }`}
-            onClick={() => setStatus(s)}
-          >
-            {s === 'all' ? 'Tất cả' : STATUS_LABEL[s]} ({counts[s]})
-          </button>
-        ))}
-      </div>
+      {isMobile ? (
+        <>
+          <QuickSearch teamId={teamId} />
+          {/* 4 tab chia đều một hàng, không cuộn ngang (tránh bị cắt viền) */}
+          <div className="mb-3 grid grid-cols-4 gap-1 rounded-xl bg-gray-200 p-1" role="tablist">
+            {STATUSES.map((s) => (
+              <button
+                key={s}
+                role="tab"
+                aria-selected={status === s}
+                className={`flex min-h-10 flex-col items-center justify-center rounded-lg px-0.5 leading-tight ${
+                  status === s ? 'bg-white text-blue-800 shadow-sm ring-1 ring-blue-200' : 'text-gray-600'
+                }`}
+                onClick={() => setStatus(s)}
+              >
+                <span className="whitespace-nowrap text-xs font-medium">{STATUS_LABEL[s]}</span>
+                <span className={`text-[11px] ${status === s ? 'font-semibold' : ''}`}>{counts[s]}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="mb-3 flex gap-2 overflow-x-auto py-0.5">
+          {DESKTOP_TABS.map((s) => (
+            <button
+              key={s}
+              className={`min-h-10 shrink-0 rounded-full px-3 text-sm ${
+                status === s ? 'bg-blue-700 text-white' : 'bg-white text-gray-700 ring-1 ring-gray-300'
+              }`}
+              onClick={() => setStatus(s)}
+            >
+              {s === 'all' ? 'Tất cả' : STATUS_LABEL[s]} ({counts[s]})
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && <ErrorBox message={error} onRetry={reload} />}
 
