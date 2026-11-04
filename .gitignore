@@ -1,0 +1,14 @@
+node_modules
+dist
+dev-dist
+.vercel
+*.log
+
+# Biến môi trường – không bao giờ commit (trừ file mẫu)
+.env
+.env.*
+!.env.example
+
+# Supabase CLI
+supabase/.temp
+supabase/.branches
