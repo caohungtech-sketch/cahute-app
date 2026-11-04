@@ -7,8 +7,15 @@ import { formatDateTime } from '../../lib/time'
 import type { Profile, Task, TaskStatus } from '../../lib/types'
 import TaskCard from './TaskCard'
 import { useTaskPage, type StatusFilter } from './useTaskPage'
+import { useIsMobile } from '../../lib/useIsMobile'
 
 const PAGE_SIZES = [10, 20, 50]
+
+// Điện thoại: tab theo thứ tự, mặc định "Chưa làm"; chỉ tab "Tất cả" phân trang 10 việc/trang.
+const MOBILE_TABS: StatusFilter[] = ['todo', 'in_progress', 'paused', 'done', 'all']
+const DESKTOP_TABS: StatusFilter[] = ['all', ...STATUSES]
+const MOBILE_ALL_PAGE_SIZE = 10
+const MOBILE_STATUS_PAGE_SIZE = 50 // tab trạng thái: hiện liền một trang; chỉ hiện nút trang nếu vượt quá
 
 interface Props {
   teamId: string | null
@@ -18,12 +25,15 @@ interface Props {
 }
 
 export default function TaskTableView({ teamId, profilesById, canChange, onError }: Props) {
-  const [status, setStatus] = useState<StatusFilter>('all')
+  const isMobile = useIsMobile()
+  const [status, setStatus] = useState<StatusFilter>(isMobile ? 'todo' : 'all')
   const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(20)
+  const [desktopPageSize, setPageSize] = useState(20)
+  const pageSize = isMobile ? (status === 'all' ? MOBILE_ALL_PAGE_SIZE : MOBILE_STATUS_PAGE_SIZE) : desktopPageSize
   const { rows, counts, total, loading, error, reload, updateStatus } = useTaskPage(teamId, status, page, pageSize)
 
   const pages = Math.max(1, Math.ceil(total / pageSize))
+  const showPager = isMobile ? total > pageSize : total > 0
 
   // Đổi bộ lọc → về trang 1; số trang giảm (việc bị xoá…) → lùi về trang cuối.
   useEffect(() => setPage(0), [teamId, status, pageSize])
@@ -41,11 +51,11 @@ export default function TaskTableView({ teamId, profilesById, canChange, onError
 
   return (
     <div>
-      <div className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
-        {(['all', ...STATUSES] as const).map((s) => (
+      <div className="-mx-4 mb-3 flex gap-1.5 overflow-x-auto px-4 pb-1 md:mx-0 md:gap-2 md:px-0">
+        {(isMobile ? MOBILE_TABS : DESKTOP_TABS).map((s) => (
           <button
             key={s}
-            className={`min-h-10 shrink-0 rounded-full px-3 text-sm ${
+            className={`min-h-9 shrink-0 rounded-full px-3 text-[13px] md:min-h-10 md:text-sm ${
               status === s ? 'bg-blue-700 text-white' : 'bg-white text-gray-700 ring-1 ring-gray-300'
             }`}
             onClick={() => setStatus(s)}
@@ -64,14 +74,14 @@ export default function TaskTableView({ teamId, profilesById, canChange, onError
       ) : (
         <>
           {/* Điện thoại: mỗi dòng là một thẻ */}
-          <div className="space-y-3 md:hidden">
+          <div className="space-y-2 md:hidden">
             {rows.map((t) => (
               <TaskCard
                 key={t.id}
                 task={t}
                 profilesById={profilesById}
                 canChangeStatus={canChange(t)}
-                showStatus
+                showStatus={status === 'all'} // tab trạng thái đã cho biết trạng thái
                 onChangeStatus={change}
               />
             ))}
@@ -142,38 +152,40 @@ export default function TaskTableView({ teamId, profilesById, canChange, onError
       )}
 
       {/* Phân trang */}
-      {total > 0 && (
-        <nav className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm" aria-label="Phân trang">
+      {showPager && (
+        <nav className="mt-3 flex items-center justify-between gap-2 text-sm md:mt-4 md:flex-wrap" aria-label="Phân trang">
           <div className="flex items-center gap-2 text-gray-600">
-            <span>
+            <span className="text-xs md:text-sm">
               {page * pageSize + 1}–{Math.min(total, (page + 1) * pageSize)} / {total} việc
             </span>
-            <select
-              className="min-h-10 rounded-lg border border-gray-300 bg-white px-2"
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              aria-label="Số dòng mỗi trang"
-            >
-              {PAGE_SIZES.map((n) => (
-                <option key={n} value={n}>
-                  {n} / trang
-                </option>
-              ))}
-            </select>
+            {!isMobile && (
+              <select
+                className="min-h-10 rounded-lg border border-gray-300 bg-white px-2"
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                aria-label="Số dòng mỗi trang"
+              >
+                {PAGE_SIZES.map((n) => (
+                  <option key={n} value={n}>
+                    {n} / trang
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2">
             <button
-              className="min-h-12 rounded-lg bg-white px-4 ring-1 ring-gray-300 disabled:opacity-40"
+              className="min-h-10 rounded-lg bg-white px-3 ring-1 ring-gray-300 disabled:opacity-40 md:min-h-12 md:px-4"
               disabled={page === 0}
               onClick={() => setPage((p) => p - 1)}
             >
               ‹ Trước
             </button>
-            <span className="min-w-16 text-center">
+            <span className="min-w-12 text-center md:min-w-16">
               {page + 1} / {pages}
             </span>
             <button
-              className="min-h-12 rounded-lg bg-white px-4 ring-1 ring-gray-300 disabled:opacity-40"
+              className="min-h-10 rounded-lg bg-white px-3 ring-1 ring-gray-300 disabled:opacity-40 md:min-h-12 md:px-4"
               disabled={page >= pages - 1}
               onClick={() => setPage((p) => p + 1)}
             >
