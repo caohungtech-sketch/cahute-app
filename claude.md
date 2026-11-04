@@ -47,7 +47,7 @@ Lệnh: `npm run dev` · `npm run build` · `npm run lint` · `supabase migratio
 
 ## 4. Vai trò & phân quyền
 
-Hai vai trò trong `profiles.role`: `manager` | `staff`. **Một nhân viên có thể thuộc nhiều nhóm**: bảng `team_members (team_id, user_id)`; `teams.manager_id` là quản lý phụ trách. Gỡ nhân viên khỏi nhóm → trigger tự gỡ họ khỏi các việc **chưa hoàn thành** của nhóm đó.
+Hai vai trò trong `profiles.role`: `manager` | `staff`. **Một nhân viên có thể thuộc nhiều nhóm**: bảng `team_members (team_id, user_id)`; `teams.manager_id` là quản lý phụ trách. Người đăng ký đầu tiên là quản lý; sau đó **quản lý nào cũng nâng/hạ quyền được người khác** (trang Nhóm → Phân quyền tài khoản, không có cấp admin). Trigger `profiles_guard` chặn tự hạ quyền mình, giữ ít nhất 1 quản lý, và khi hạ quyền một quản lý thì chuyển các nhóm của họ cho người thực hiện. Gỡ nhân viên khỏi nhóm → trigger tự gỡ họ khỏi các việc **chưa hoàn thành** của nhóm đó.
 
 Hàm SQL dùng chung (`security definer`, `stable`): `my_role()` (không đặt tên `current_role` – trùng từ khoá Postgres), `is_manager()`, `manages_user(uid)` (true nếu người gọi quản lý **bất kỳ** nhóm nào có `uid`), `task_team_has_member(task, uid)` (người được giao phải thuộc đúng nhóm của việc). Dùng các hàm này trong policy, tránh policy tự query lại bảng `profiles` gây đệ quy.
 

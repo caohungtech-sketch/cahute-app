@@ -4,11 +4,12 @@ import { btn, ErrorBox, inputCls, Toast } from '../components/ui'
 import { displayName, useProfiles } from '../lib/profiles'
 import { supabase } from '../lib/supabase'
 import { useTeamMembers } from '../lib/teams'
+import type { Role } from '../lib/types'
 
 // Quản lý: tạo nhóm, thêm/bớt nhân viên. Một nhân viên có thể thuộc nhiều nhóm.
 export default function TeamPage() {
   const { session, profile, managedTeams, reload: reloadAuth } = useAuth()
-  const { list: profiles, byId } = useProfiles()
+  const { list: profiles, byId, reload: reloadProfiles } = useProfiles()
   const { members, reload: reloadMembers } = useTeamMembers(managedTeams.map((t) => t.id))
   const [newTeam, setNewTeam] = useState('')
   const [busy, setBusy] = useState(false)
@@ -40,6 +41,19 @@ export default function TeamPage() {
     const { error } = await supabase.from('team_members').delete().eq('team_id', teamId).eq('user_id', userId)
     if (error) setToast(error.message)
     await reloadMembers()
+  }
+
+  async function changeRole(userId: string, role: Role) {
+    const name = displayName(byId.get(userId))
+    const msg =
+      role === 'manager'
+        ? `Nâng ${name} lên quản lý? Người này sẽ tạo được nhóm, giao việc và đổi quyền của người khác.`
+        : `Hạ ${name} xuống nhân viên? Các nhóm người này đang quản lý sẽ chuyển sang cho bạn.`
+    if (!confirm(msg)) return
+    const { error } = await supabase.from('profiles').update({ role }).eq('id', userId)
+    if (error) setToast(error.message)
+    else setToast(`Đã cập nhật quyền của ${name}. Người đó cần tải lại app để thấy thay đổi.`)
+    await Promise.all([reloadProfiles(), reloadAuth()]) // nhóm có thể vừa chuyển sang mình
   }
 
   return (
@@ -105,6 +119,44 @@ export default function TeamPage() {
       <p className="text-xs text-gray-500">
         Nhân viên tự đăng ký tài khoản trên app, sau đó bạn thêm họ vào một hoặc nhiều nhóm ở đây.
       </p>
+
+      <section className="rounded-xl bg-white p-4 ring-1 ring-gray-200">
+        <h2 className="mb-1 font-semibold">Phân quyền tài khoản</h2>
+        <p className="mb-3 text-xs text-gray-500">
+          Quản lý tạo được nhóm, giao việc và đổi quyền người khác. Không thể tự hạ quyền của mình; hệ thống luôn còn ít nhất
+          một quản lý.
+        </p>
+        <ul className="divide-y divide-gray-100">
+          {profiles.map((p) => {
+            const isSelf = p.id === session!.user.id
+            return (
+              <li key={p.id} className="flex min-h-12 items-center gap-2 py-1">
+                <span className="flex-1">
+                  {displayName(p)}
+                  {isSelf && <span className="text-gray-500"> (bạn)</span>}
+                </span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    p.role === 'manager' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  {p.role === 'manager' ? 'Quản lý' : 'Nhân viên'}
+                </span>
+                {!isSelf &&
+                  (p.role === 'staff' ? (
+                    <button className="min-h-12 px-2 text-sm font-medium text-blue-700" onClick={() => changeRole(p.id, 'manager')}>
+                      Nâng lên quản lý
+                    </button>
+                  ) : (
+                    <button className="min-h-12 px-2 text-sm font-medium text-red-700" onClick={() => changeRole(p.id, 'staff')}>
+                      Hạ xuống nhân viên
+                    </button>
+                  ))}
+              </li>
+            )
+          })}
+        </ul>
+      </section>
 
       <Toast message={toast} onClose={closeToast} />
     </div>
