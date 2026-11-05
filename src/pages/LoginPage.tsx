@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router'
 import { supabase } from '../lib/supabase'
 import { btn, inputCls } from '../components/ui'
 
 export default function LoginPage() {
+  const navigate = useNavigate()
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -20,6 +22,8 @@ export default function LoginPage() {
     if (mode === 'login') {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) setError(error.message === 'Invalid login credentials' ? 'Sai email hoặc mật khẩu' : error.message)
+      // Về trang chủ: route "/" đưa quản lý vào Tổng quan, nhân viên vào Tác vụ
+      else navigate('/', { replace: true })
     } else {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -28,6 +32,7 @@ export default function LoginPage() {
       })
       if (error) setError(error.message)
       else if (!data.session) setInfo('Đã đăng ký. Hãy mở email để xác nhận tài khoản rồi đăng nhập.')
+      else navigate('/', { replace: true })
     }
     setBusy(false)
   }
