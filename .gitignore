@@ -12,3 +12,6 @@ dev-dist
 # Supabase CLI
 supabase/.temp
 supabase/.branches
+
+# Cấu hình Claude Code riêng trên máy này
+.claude/settings.local.json
