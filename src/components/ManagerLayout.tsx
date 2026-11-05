@@ -17,7 +17,6 @@ import {
   PanelLeftOpen,
   Search,
   Settings,
-  ShieldCheck,
   Sun,
   Wrench,
   X,
@@ -38,7 +37,6 @@ const MENU: { to: string; label: string; icon: Icon }[] = [
   { to: '/staff', label: 'Nhân viên', icon: Contact },
   { to: '/customers', label: 'Khách hàng', icon: Building2 },
   { to: '/services', label: 'Dịch vụ', icon: Wrench },
-  { to: '/permissions', label: 'Phân quyền', icon: ShieldCheck },
   { to: '/account', label: 'Cài đặt', icon: Settings },
 ]
 

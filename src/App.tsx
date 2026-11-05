@@ -12,7 +12,7 @@ import TasksPage from './pages/TasksPage'
 const TaskDetailPage = lazy(() => import('./pages/TaskDetailPage'))
 const TaskFormPage = lazy(() => import('./pages/TaskFormPage'))
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
-const PermissionsPage = lazy(() => import('./pages/PermissionsPage'))
+const StaffPage = lazy(() => import('./pages/StaffPage'))
 const AccountPage = lazy(() => import('./pages/AccountPage'))
 const ManagerLayout = lazy(() => import('./components/ManagerLayout'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
@@ -22,7 +22,6 @@ const ComingSoonPage = lazy(() => import('./pages/ComingSoonPage'))
 const COMING_SOON: [string, string][] = [
   ['messages', 'Tin nhắn'],
   ['appointments', 'Lịch hẹn'],
-  ['staff', 'Nhân viên'],
   ['customers', 'Khách hàng'],
   ['services', 'Dịch vụ'],
   ['help', 'Trợ giúp'],
@@ -69,7 +68,8 @@ function AppRoutes() {
           <Route path="tasks/new" element={<TaskFormPage />} />
           <Route path="tasks/:id" element={<TaskDetailPage />} />
           <Route path="projects" element={<ProjectsPage />} />
-          <Route path="permissions" element={<PermissionsPage />} />
+          <Route path="staff" element={<StaffPage />} />
+          <Route path="permissions" element={<Navigate to="/staff" replace />} />
           <Route path="account" element={<AccountPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

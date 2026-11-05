@@ -6,6 +6,7 @@ export interface Profile {
   full_name: string
   role: Role
   avatar_path: string | null
+  deleted_at?: string | null // đã "xoá" (ẩn khỏi danh sách nhân viên)
 }
 
 export interface Project {
@@ -42,4 +43,14 @@ export interface TaskComment {
   body: string
   created_at: string
   task_attachments: Attachment[]
+}
+
+// Thông tin nhân sự: chỉ quản lý và chính người đó đọc được (RLS)
+export interface StaffDetails {
+  user_id: string
+  phone: string
+  id_number: string
+  id_issued_on: string | null // 'YYYY-MM-DD'
+  id_issued_place: string
+  hired_on: string | null // 'YYYY-MM-DD'
 }

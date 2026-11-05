@@ -8,7 +8,7 @@ let cache: Promise<Profile[]> | null = null
 export function loadProfiles(force = false): Promise<Profile[]> {
   if (!cache || force) {
     cache = Promise.resolve(
-      supabase.from('profiles').select('id, full_name, role, avatar_path').order('full_name').limit(1000),
+      supabase.from('profiles').select('id, full_name, role, avatar_path, deleted_at').order('full_name').limit(1000),
     ).then(({ data, error }) => {
       if (error) {
         cache = null

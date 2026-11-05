@@ -66,3 +66,10 @@ export function toLocalInput(iso: string | null): string {
 export function fromLocalInput(value: string): string | null {
   return value ? new Date(`${value}:00+07:00`).toISOString() : null
 }
+
+// Cột kiểu date ('YYYY-MM-DD', không có giờ) → "05/11/2026". Không đổi múi giờ.
+export function formatDateOnly(value: string | null): string {
+  if (!value) return ''
+  const [y, m, d] = value.split('-')
+  return `${d}/${m}/${y}`
+}

@@ -30,8 +30,8 @@ export default function ProjectsPage() {
 
   if (profile?.role !== 'manager') return <ErrorBox message="Chỉ quản lý mới dùng được trang này." />
 
-  const staff = profiles.filter((p) => p.role === 'staff')
-  const managerAccounts = profiles.filter((p) => p.role === 'manager')
+  const staff = profiles.filter((p) => p.role === 'staff' && !p.deleted_at)
+  const managerAccounts = profiles.filter((p) => p.role === 'manager' && !p.deleted_at)
   const uid = session!.user.id
 
   async function createProject(e: FormEvent) {
