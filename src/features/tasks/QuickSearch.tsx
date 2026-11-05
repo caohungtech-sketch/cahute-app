@@ -13,10 +13,7 @@ interface Hit {
 const MIN_CHARS = 2
 const LIMIT = 8
 
-// Escape ký tự đại diện của LIKE để người dùng gõ % hoặc _ vẫn tìm đúng.
-const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`)
-
-// Tìm nhanh theo tiêu đề, gợi ý dạng autocomplete. RLS tự giới hạn kết quả theo quyền.
+// Tìm nhanh theo tiêu đề (có dấu/không dấu, gần đúng), gợi ý dạng autocomplete. RLS tự giới hạn kết quả theo quyền.
 export default function QuickSearch({ teamId }: { teamId: string | null }) {
   const navigate = useNavigate()
   const listId = useId()
@@ -37,14 +34,8 @@ export default function QuickSearch({ teamId }: { teamId: string | null }) {
     setSearching(true)
     const req = ++reqRef.current
     const timer = setTimeout(async () => {
-      let query = supabase
-        .from('tasks')
-        .select('id, title, status')
-        .ilike('title', `%${escapeLike(term)}%`)
-        .order('updated_at', { ascending: false })
-        .limit(LIMIT)
-      if (teamId) query = query.eq('team_id', teamId)
-      const { data } = await query
+      // Không phân biệt dấu + gần đúng, xử lý ở hàm SQL search_tasks (RLS vẫn áp dụng)
+      const { data } = await supabase.rpc('search_tasks', { q: term, p_team_id: teamId, max_results: LIMIT })
       if (req !== reqRef.current) return
       setHits((data as Hit[]) ?? [])
       setActive(-1)
