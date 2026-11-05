@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from '../auth/AuthProvider'
 import { btn, ErrorBox, inputCls } from '../components/ui'
 import { displayName, useProfiles } from '../lib/profiles'
 import { supabase } from '../lib/supabase'
+import { mostUsedTeam, recordTeamUse } from '../lib/teamUsage'
 import { useTeamMembers } from '../lib/teams'
 import { fromLocalInput } from '../lib/time'
 
@@ -17,7 +18,14 @@ export default function TaskFormPage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [due, setDue] = useState('')
-  const [teamId, setTeamId] = useState(managedTeams[0]?.id ?? '')
+  const [searchParams] = useSearchParams()
+  const [teamId, setTeamId] = useState(() => {
+    // Ưu tiên nhóm đang xem ở danh sách, sau đó nhóm tương tác nhiều nhất, cuối cùng nhóm đầu tiên
+    const ids = managedTeams.map((t) => t.id)
+    const fromList = searchParams.get('team')
+    if (fromList && ids.includes(fromList)) return fromList
+    return (session && mostUsedTeam(session.user.id, ids)) ?? ids[0] ?? ''
+  })
   const [assignees, setAssignees] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -47,6 +55,7 @@ export default function TaskFormPage() {
       setError(error.message)
       return setBusy(false)
     }
+    recordTeamUse(session!.user.id, teamId)
     if (assignees.length) {
       const { error: aErr } = await supabase.from('task_assignees').insert(assignees.map((u) => ({ task_id: data.id, user_id: u })))
       if (aErr) setError(`Đã tạo việc nhưng giao người thất bại: ${aErr.message}`)

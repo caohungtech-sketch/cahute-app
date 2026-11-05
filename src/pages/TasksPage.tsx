@@ -5,6 +5,7 @@ import { Toast } from '../components/ui'
 import KanbanView from '../features/tasks/KanbanView'
 import TaskTableView from '../features/tasks/TaskTableView'
 import { useProfiles } from '../lib/profiles'
+import { mostUsedTeam } from '../lib/teamUsage'
 import { useIsMobile } from '../lib/useIsMobile'
 import type { Task } from '../lib/types'
 
@@ -21,14 +22,17 @@ function readView(): View {
 export default function TasksPage() {
   const { session, profile, managedTeams } = useAuth()
   const [view, setView] = useState<View>(readView)
-  const [teamId, setTeamId] = useState('')
+  const uid = session?.user.id
+  // Mặc định: nhóm quản lý tương tác nhiều nhất (chưa có lịch sử → Tất cả nhóm)
+  const [teamId, setTeamId] = useState(() =>
+    managedTeams.length > 1 && uid ? (mostUsedTeam(uid, managedTeams.map((t) => t.id)) ?? '') : '',
+  )
   const [toast, setToast] = useState<string | null>(null)
   const closeToast = useCallback(() => setToast(null), [])
   const { byId } = useProfiles()
   const isMobile = useIsMobile()
 
   const isManager = profile?.role === 'manager'
-  const uid = session?.user.id
 
   const canChange = useCallback(
     (t: Task) => managedTeams.some((m) => m.id === t.team_id) || t.task_assignees.some((a) => a.user_id === uid),
@@ -54,7 +58,7 @@ export default function TasksPage() {
         <h1 className="flex-1 text-lg font-bold md:text-xl">{isManager ? 'Công việc' : 'Việc của tôi'}</h1>
         {isManager && managedTeams.length > 0 && (
           <Link
-            to="/tasks/new"
+            to={teamId ? `/tasks/new?team=${teamId}` : '/tasks/new'}
             className="inline-flex min-h-10 items-center rounded-xl bg-blue-700 px-3 text-sm font-semibold text-white active:bg-blue-800 md:min-h-12 md:px-4 md:text-base"
           >
             + Tạo việc
