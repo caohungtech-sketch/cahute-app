@@ -3,6 +3,25 @@
 Web app giao nhận việc cho đội nhân viên hiện trường: danh sách + Kanban, chat nội bộ, thông báo giao việc qua Web Push và Telegram, định vị nhân viên bằng Traccar Client. Nhân viên dùng trên điện thoại dưới dạng PWA.
 
 > Hiện trạng: repo mới chỉ có `index.html` chào mừng (trang thử Vercel). Khi bắt đầu code thật, khởi tạo theo mục 2 và thay trang này.
+## 🎨 Quy chuẩn Màu sắc & Giao diện (Design System)
+
+Dự án Web App Cahute sử dụng phong cách thiết kế hiện đại lấy cảm hứng từ Bitrix24, với các quy định về màu sắc chủ đạo như sau:
+
+### 1. Màu Chủ Đạo (Primary / Brand Colors)
+* **Xanh tím đậm (Deep Indigo / Purple-Blue):**
+  * **Mã Tailwind:** `indigo-900`, `purple-900`, hoặc `slate-900` kết hợp độ sâu tương đương.
+  * **Ứng dụng:** Dùng làm màu nền cho toàn bộ **Sidebar (Thanh điều hướng bên trái)**, các thanh công cụ hệ thống hoặc vùng nhận diện thương hiệu.
+* **Màu trắng & Xám sáng (Clean Background):**
+  * **Mã Tailwind:** `bg-white`, `bg-gray-50`, `bg-gray-100`.
+  * **Ứng dụng:** Làm màu nền cho vùng nội dung chính (Main Content Area) và khu vực bảng biểu (Data Table) để tối ưu khả năng đọc dữ liệu.
+
+### 2. Màu Điểm Nhấn (Accent Colors)
+* **Xanh lá cây (Success / Action):**
+  * **Mã Tailwind:** `bg-green-600` (hoặc `emerald-500`).
+  * **Ứng dụng:** Dùng cho các nút hành động chính, nút tạo mới (Ví dụ: nút `+ Tạo`).
+* **Huy hiệu & Nhãn trạng thái (Badges):**
+  * **Mã Tailwind:** Nền xanh nhạt / vàng nhạt (`bg-yellow-50 text-yellow-800` hoặc tương đương).
+  * **Ứng dụng:** Dùng cho các nhãn phân loại vai trò (ví dụ: *Người quản lý dự án*) hoặc trạng thái dữ liệu.
 
 ## 1. Nguyên tắc làm việc
 
