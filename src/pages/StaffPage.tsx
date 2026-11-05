@@ -25,7 +25,7 @@ const iconBtn = 'grid h-11 w-11 shrink-0 place-items-center rounded-xl text-gray
 
 // Danh sách nhân viên: thông tin nhân sự, vai trò, dự án. Thay cho trang Phân quyền cũ.
 export default function StaffPage() {
-  const { session, profile, managedProjects, reload: reloadAuth } = useAuth()
+  const { session, profile, reload: reloadAuth } = useAuth()
   const { list: profiles, byId, reload: reloadProfiles } = useProfiles()
   const [details, setDetails] = useState<Map<string, StaffDetails>>(new Map())
   const [members, setMembers] = useState<Link[]>([])
@@ -59,7 +59,6 @@ export default function StaffPage() {
   }, [load])
 
   const visible = useMemo(() => profiles.filter((p) => !p.deleted_at), [profiles])
-  const myProjectIds = useMemo(() => new Set(managedProjects.map((p) => p.id)), [managedProjects])
 
   if (profile?.role !== 'manager') return <ErrorBox message="Chỉ quản lý mới dùng được trang này." />
 
@@ -79,20 +78,6 @@ export default function StaffPage() {
     await Promise.all([reloadProfiles(), reloadAuth(), load()]) // dự án có thể vừa chuyển sang mình
   }
 
-  async function addToProject(userId: string, projectId: string) {
-    const { error } = await supabase.from('project_members').insert({ project_id: projectId, user_id: userId })
-    if (error) setToast(error.message)
-    await load()
-  }
-
-  async function removeFromProject(userId: string, projectId: string) {
-    const msg = `Gỡ ${displayName(byId.get(userId))} khỏi dự án "${projectNames.get(projectId)}"? Họ cũng bị gỡ khỏi các việc chưa hoàn thành của dự án này.`
-    if (!confirm(msg)) return
-    const { error } = await supabase.from('project_members').delete().eq('project_id', projectId).eq('user_id', userId)
-    if (error) setToast(error.message)
-    await load()
-  }
-
   async function hide(p: Profile) {
     if (!confirm(`Xoá ${displayName(p)} khỏi danh sách nhân viên? Công việc, bình luận cũ của người này vẫn được giữ.`)) return
     const { error } = await supabase.from('profiles').update({ deleted_at: new Date().toISOString() }).eq('id', p.id)
@@ -101,53 +86,40 @@ export default function StaffPage() {
     await reloadProfiles()
   }
 
-  // Dự án của một người: nhân viên → dự án tham gia (sửa được nếu mình quản lý); quản lý → dự án đang quản lý
+  // Dự án của một người (chỉ xem): nhân viên → dự án tham gia; quản lý → dự án đang quản lý.
+  // Thêm/gỡ nhân viên khỏi dự án làm ở trang Dự án.
   function projectChips(p: Profile) {
     const isMgr = p.role === 'manager'
     const ids = (isMgr ? managers : members).filter((l) => l.user_id === p.id).map((l) => l.project_id)
-    const addable = isMgr ? [] : managedProjects.filter((mp) => !ids.includes(mp.id))
+    if (ids.length === 0) return <span className="text-sm text-gray-500">—</span>
     return (
       <div className="flex flex-wrap items-center gap-1.5">
-        {ids.length === 0 && <span className="text-sm text-gray-500">—</span>}
-        {ids.map((pid) => {
-          const canRemove = !isMgr && myProjectIds.has(pid)
-          return (
-            <span
-              key={pid}
-              className={`inline-flex min-h-8 items-center rounded-full text-xs font-medium ${
-                isMgr ? 'bg-indigo-50 px-2.5 text-indigo-800' : 'bg-gray-100 pl-2.5 text-gray-700'
-              } ${canRemove ? '' : 'pr-2.5'}`}
-              title={isMgr ? 'Đang quản lý dự án này' : undefined}
-            >
-              {projectNames.get(pid) ?? '…'}
-              {canRemove && (
-                <button
-                  className="grid h-8 w-8 place-items-center rounded-full hover:bg-gray-200"
-                  onClick={() => removeFromProject(p.id, pid)}
-                  aria-label={`Gỡ ${displayName(p)} khỏi ${projectNames.get(pid)}`}
-                >
-                  <X className="h-3.5 w-3.5" aria-hidden />
-                </button>
-              )}
-            </span>
-          )
-        })}
-        {addable.length > 0 && (
-          <select
-            className="min-h-8 max-w-40 rounded-full border border-dashed border-gray-300 bg-white px-2 text-base text-gray-600 md:text-xs"
-            value=""
-            onChange={(e) => e.target.value && addToProject(p.id, e.target.value)}
-            aria-label={`Thêm ${displayName(p)} vào dự án`}
+        {ids.map((pid) => (
+          <span
+            key={pid}
+            className={`inline-flex min-h-7 items-center rounded-full px-2.5 text-xs font-medium ${
+              isMgr ? 'bg-indigo-50 text-indigo-800' : 'bg-gray-100 text-gray-700'
+            }`}
+            title={isMgr ? 'Đang quản lý dự án này' : undefined}
           >
-            <option value="">+ Thêm dự án</option>
-            {addable.map((mp) => (
-              <option key={mp.id} value={mp.id}>
-                {mp.name}
-              </option>
-            ))}
-          </select>
-        )}
+            {projectNames.get(pid) ?? '…'}
+          </span>
+        ))}
       </div>
+    )
+  }
+
+  // Tên bấm được để mở hộp thoại sửa thông tin
+  function nameButton(p: Profile) {
+    return (
+      <button
+        className="text-left font-semibold text-gray-900 hover:text-indigo-700 hover:underline"
+        onClick={() => setEditing(p)}
+        title="Sửa thông tin"
+      >
+        {displayName(p)}
+        {p.id === uid && <span className="font-normal text-gray-500"> (bạn)</span>}
+      </button>
     )
   }
 
@@ -199,8 +171,7 @@ export default function StaffPage() {
       <div>
         <h1 className="text-xl font-bold md:text-2xl">Nhân viên</h1>
         <p className="text-sm text-gray-500">
-          {visible.length} người · {managerCount} quản lý. Nhân viên tự đăng ký tài khoản trên app, sau đó bạn bổ sung thông tin
-          và thêm vào dự án ở đây.
+          {visible.length} người · {managerCount} quản lý. Bấm vào tên để sửa thông tin. Thêm nhân viên vào dự án ở trang Dự án.
         </p>
       </div>
 
@@ -230,10 +201,7 @@ export default function StaffPage() {
                   const d = details.get(p.id)
                   return (
                     <tr key={p.id} className="align-top hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">
-                        {displayName(p)}
-                        {p.id === uid && <span className="font-normal text-gray-500"> (bạn)</span>}
-                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">{nameButton(p)}</td>
                       <td className="whitespace-nowrap px-3 py-3 tabular-nums">{d?.phone}</td>
                       <td className="whitespace-nowrap px-3 py-3 tabular-nums">{d?.id_number}</td>
                       <td className="whitespace-nowrap px-3 py-3 tabular-nums">{formatDateOnly(d?.id_issued_on ?? null)}</td>
@@ -270,10 +238,7 @@ export default function StaffPage() {
                 <li key={p.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
                   <div className="flex items-start gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold">
-                        {displayName(p)}
-                        {p.id === uid && <span className="font-normal text-gray-500"> (bạn)</span>}
-                      </p>
+                      <p className="break-words">{nameButton(p)}</p>
                       <div className="mt-1">
                         {roleCell(p)}
                       </div>
