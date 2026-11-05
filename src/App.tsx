@@ -12,6 +12,7 @@ import TasksPage from './pages/TasksPage'
 const TaskDetailPage = lazy(() => import('./pages/TaskDetailPage'))
 const TaskFormPage = lazy(() => import('./pages/TaskFormPage'))
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
+const PermissionsPage = lazy(() => import('./pages/PermissionsPage'))
 const AccountPage = lazy(() => import('./pages/AccountPage'))
 const ManagerLayout = lazy(() => import('./components/ManagerLayout'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
@@ -68,6 +69,7 @@ function AppRoutes() {
           <Route path="tasks/new" element={<TaskFormPage />} />
           <Route path="tasks/:id" element={<TaskDetailPage />} />
           <Route path="projects" element={<ProjectsPage />} />
+          <Route path="permissions" element={<PermissionsPage />} />
           <Route path="account" element={<AccountPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

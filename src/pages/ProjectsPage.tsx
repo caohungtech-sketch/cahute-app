@@ -1,17 +1,27 @@
+import { Check, FolderPlus, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useCallback, useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/AuthProvider'
-import { btn, ErrorBox, inputCls, Toast } from '../components/ui'
+import { ErrorBox, inputCls, Toast } from '../components/ui'
 import { displayName, useProfiles } from '../lib/profiles'
-import { supabase } from '../lib/supabase'
 import { useProjectMembers } from '../lib/projects'
-import type { Role } from '../lib/types'
+import { supabase } from '../lib/supabase'
+import type { Project } from '../lib/types'
 
-// Quản lý: tạo dự án, thêm/bớt nhân viên. Một nhân viên có thể thuộc nhiều dự án.
+const greenBtn =
+  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-green-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-green-700 disabled:opacity-50'
+const plainBtn =
+  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-100'
+const iconBtn = 'grid h-11 w-11 shrink-0 place-items-center rounded-xl text-gray-500 hover:bg-gray-100'
+
+// Quản lý: tạo / đổi tên / xoá dự án, thêm/bớt nhân viên. Một nhân viên có thể thuộc nhiều dự án.
 export default function ProjectsPage() {
   const { session, profile, managedProjects, reload: reloadAuth } = useAuth()
-  const { list: profiles, byId, reload: reloadProfiles } = useProfiles()
+  const { list: profiles, byId } = useProfiles()
   const { members, reload: reloadMembers } = useProjectMembers(managedProjects.map((t) => t.id))
-  const [newProject, setNewProject] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const closeToast = useCallback(() => setToast(null), [])
@@ -23,10 +33,47 @@ export default function ProjectsPage() {
   async function createProject(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
-    const { error } = await supabase.from('projects').insert({ name: newProject.trim(), manager_id: session!.user.id })
+    const { error } = await supabase.from('projects').insert({ name: newName.trim(), manager_id: session!.user.id })
     setBusy(false)
     if (error) return setToast(error.message)
-    setNewProject('')
+    setNewName('')
+    setCreating(false)
+    setToast('Đã tạo dự án.')
+    await reloadAuth()
+  }
+
+  function startEdit(project: Project) {
+    setEditingId(project.id)
+    setEditName(project.name)
+  }
+
+  async function saveEdit(e: FormEvent) {
+    e.preventDefault()
+    if (!editingId) return
+    setBusy(true)
+    const { error } = await supabase.from('projects').update({ name: editName.trim() }).eq('id', editingId)
+    setBusy(false)
+    if (error) return setToast(error.message)
+    setEditingId(null)
+    setToast('Đã đổi tên dự án.')
+    await reloadAuth()
+  }
+
+  async function deleteProject(project: Project) {
+    // Xoá dự án xoá luôn mọi công việc của dự án (on delete cascade) → báo rõ số việc
+    const { count, error: countError } = await supabase
+      .from('tasks')
+      .select('id', { count: 'exact', head: true })
+      .eq('project_id', project.id)
+    if (countError) return setToast(countError.message)
+    const msg =
+      count
+        ? `Xoá dự án "${project.name}"? ${count} công việc cùng bình luận và ảnh của chúng sẽ bị xoá vĩnh viễn.`
+        : `Xoá dự án "${project.name}"?`
+    if (!confirm(msg)) return
+    const { error } = await supabase.from('projects').delete().eq('id', project.id)
+    if (error) return setToast(error.message)
+    setToast('Đã xoá dự án.')
     await reloadAuth()
   }
 
@@ -43,31 +90,100 @@ export default function ProjectsPage() {
     await reloadMembers()
   }
 
-  async function changeRole(userId: string, role: Role) {
-    const name = displayName(byId.get(userId))
-    const msg =
-      role === 'manager'
-        ? `Nâng ${name} lên quản lý? Người này sẽ tạo được dự án, giao việc và đổi quyền của người khác.`
-        : `Hạ ${name} xuống nhân viên? Các dự án người này đang quản lý sẽ chuyển sang cho bạn.`
-    if (!confirm(msg)) return
-    const { error } = await supabase.from('profiles').update({ role }).eq('id', userId)
-    if (error) setToast(error.message)
-    else setToast(`Đã cập nhật quyền của ${name}. Người đó cần tải lại app để thấy thay đổi.`)
-    await Promise.all([reloadProfiles(), reloadAuth()]) // dự án có thể vừa chuyển sang mình
-  }
-
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-xl font-bold">Dự án của tôi</h1>
+    <div className="mx-auto max-w-3xl space-y-4 md:space-y-6">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex-1">
+          <h1 className="text-xl font-bold md:text-2xl">Dự án</h1>
+          <p className="text-sm text-gray-500">Tạo dự án và thêm nhân viên vào dự án để giao việc.</p>
+        </div>
+        {!creating && (
+          <button className={greenBtn} onClick={() => setCreating(true)}>
+            <Plus className="h-4 w-4" aria-hidden /> Tạo dự án
+          </button>
+        )}
+      </div>
+
+      {creating && (
+        <form onSubmit={createProject} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200 md:p-5">
+          <h2 className="mb-3 text-base font-semibold">Dự án mới</h2>
+          <input
+            className={inputCls}
+            placeholder="Tên dự án, ví dụ: Lắp đặt điện tòa nhà A"
+            required
+            autoFocus
+            maxLength={100}
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+          />
+          <div className="mt-3 flex justify-end gap-2">
+            <button type="button" className={plainBtn} onClick={() => setCreating(false)}>
+              Huỷ
+            </button>
+            <button className={greenBtn} disabled={busy || !newName.trim()}>
+              Tạo
+            </button>
+          </div>
+        </form>
+      )}
+
+      {managedProjects.length === 0 && !creating && (
+        <div className="flex flex-col items-center gap-2 rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-200">
+          <FolderPlus className="h-10 w-10 text-gray-400" aria-hidden />
+          <p className="font-medium">Chưa có dự án nào</p>
+          <p className="text-sm text-gray-500">Bấm "Tạo dự án" để bắt đầu.</p>
+        </div>
+      )}
 
       {managedProjects.map((project) => {
         const ids = members[project.id] ?? []
         const notInProject = staff.filter((p) => !ids.includes(p.id))
+        const editing = editingId === project.id
         return (
-          <section key={project.id} className="rounded-xl bg-white p-4 ring-1 ring-gray-200">
-            <h2 className="mb-2 font-semibold">
-              {project.name} <span className="font-normal text-gray-500">({ids.length} thành viên)</span>
-            </h2>
+          <section key={project.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200 md:p-5">
+            {editing ? (
+              <form onSubmit={saveEdit} className="mb-3 flex items-center gap-2">
+                <input
+                  className={inputCls}
+                  required
+                  autoFocus
+                  maxLength={100}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  aria-label="Tên dự án"
+                />
+                <button
+                  className={`${iconBtn} text-green-700`}
+                  disabled={busy || !editName.trim() || editName.trim() === project.name}
+                  aria-label="Lưu tên"
+                  title="Lưu"
+                >
+                  <Check className="h-5 w-5" aria-hidden />
+                </button>
+                <button type="button" className={iconBtn} onClick={() => setEditingId(null)} aria-label="Huỷ sửa" title="Huỷ">
+                  <X className="h-5 w-5" aria-hidden />
+                </button>
+              </form>
+            ) : (
+              <div className="mb-3 flex items-center gap-2">
+                <h2 className="min-w-0 flex-1 truncate text-base font-semibold">{project.name}</h2>
+                <span className="shrink-0 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                  {ids.length} thành viên
+                </span>
+                <button className={iconBtn} onClick={() => startEdit(project)} aria-label={`Sửa tên ${project.name}`} title="Sửa tên">
+                  <Pencil className="h-4 w-4" aria-hidden />
+                </button>
+                <button
+                  className={`${iconBtn} hover:text-red-700`}
+                  onClick={() => deleteProject(project)}
+                  aria-label={`Xoá ${project.name}`}
+                  title="Xoá dự án"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
+            )}
+
             {ids.length === 0 && <p className="text-sm text-gray-500">Chưa có thành viên.</p>}
             <ul className="divide-y divide-gray-100">
               {ids.map((uid) => (
@@ -99,64 +215,9 @@ export default function ProjectsPage() {
         )
       })}
 
-      <form onSubmit={createProject} className="rounded-xl bg-white p-4 ring-1 ring-gray-200">
-        <h2 className="mb-2 font-semibold">Tạo dự án mới</h2>
-        <div className="flex gap-2">
-          <input
-            className={inputCls}
-            placeholder="Tên dự án, ví dụ: Lắp đặt điện tòa nhà A"
-            required
-            maxLength={100}
-            value={newProject}
-            onChange={(e) => setNewProject(e.target.value)}
-          />
-          <button className={btn.primary} disabled={busy || !newProject.trim()}>
-            Tạo
-          </button>
-        </div>
-      </form>
-
       <p className="text-xs text-gray-500">
         Nhân viên tự đăng ký tài khoản trên app, sau đó bạn thêm họ vào một hoặc nhiều dự án ở đây.
       </p>
-
-      <section className="rounded-xl bg-white p-4 ring-1 ring-gray-200">
-        <h2 className="mb-1 font-semibold">Phân quyền tài khoản</h2>
-        <p className="mb-3 text-xs text-gray-500">
-          Quản lý tạo được dự án, giao việc và đổi quyền người khác. Không thể tự hạ quyền của mình; hệ thống luôn còn ít nhất
-          một quản lý.
-        </p>
-        <ul className="divide-y divide-gray-100">
-          {profiles.map((p) => {
-            const isSelf = p.id === session!.user.id
-            return (
-              <li key={p.id} className="flex min-h-12 items-center gap-2 py-1">
-                <span className="flex-1">
-                  {displayName(p)}
-                  {isSelf && <span className="text-gray-500"> (bạn)</span>}
-                </span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    p.role === 'manager' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  {p.role === 'manager' ? 'Quản lý' : 'Nhân viên'}
-                </span>
-                {!isSelf &&
-                  (p.role === 'staff' ? (
-                    <button className="min-h-12 px-2 text-sm font-medium text-blue-700" onClick={() => changeRole(p.id, 'manager')}>
-                      Nâng lên quản lý
-                    </button>
-                  ) : (
-                    <button className="min-h-12 px-2 text-sm font-medium text-red-700" onClick={() => changeRole(p.id, 'staff')}>
-                      Hạ xuống nhân viên
-                    </button>
-                  ))}
-              </li>
-            )
-          })}
-        </ul>
-      </section>
 
       <Toast message={toast} onClose={closeToast} />
     </div>
