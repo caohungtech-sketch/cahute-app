@@ -11,7 +11,6 @@ export interface Profile {
 export interface Project {
   id: string
   name: string
-  manager_id: string | null
 }
 
 export interface Task {

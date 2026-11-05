@@ -42,10 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const [p, t] = await Promise.all([
       supabase.from('profiles').select('id, full_name, role, avatar_path').eq('id', userId).single(),
-      supabase.from('projects').select('id, name, manager_id').eq('manager_id', userId).order('name'),
+      // !inner: chỉ lấy dự án mà người dùng có trong project_managers
+      supabase.from('projects').select('id, name, project_managers!inner(user_id)').eq('project_managers.user_id', userId).order('name'),
     ])
     setProfile((p.data as Profile) ?? null)
-    setManagedProjects((t.data as Project[]) ?? [])
+    setManagedProjects((t.data ?? []).map(({ id, name }) => ({ id, name })))
     setLoadedFor(userId)
   }, [userId])
 

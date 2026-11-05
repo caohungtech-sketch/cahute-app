@@ -20,7 +20,7 @@ export default function PermissionsPage() {
     const msg =
       role === 'manager'
         ? `Nâng ${name} lên quản lý? Người này sẽ tạo được dự án, giao việc và đổi quyền của người khác.`
-        : `Hạ ${name} xuống nhân viên? Các dự án người này đang quản lý sẽ chuyển sang cho bạn.`
+        : `Hạ ${name} xuống nhân viên? Người này sẽ bị gỡ khỏi quản lý các dự án; bạn được thêm làm quản lý các dự án đó.`
     if (!confirm(msg)) return
     const { error } = await supabase.from('profiles').update({ role }).eq('id', userId)
     if (error) setToast(error.message)
