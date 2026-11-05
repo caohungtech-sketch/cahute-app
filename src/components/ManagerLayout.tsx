@@ -18,7 +18,6 @@ import {
   Search,
   Settings,
   Sun,
-  UsersRound,
   Wrench,
   X,
 } from 'lucide-react'
@@ -38,7 +37,6 @@ const MENU: { to: string; label: string; icon: Icon }[] = [
   { to: '/staff', label: 'Nhân viên', icon: Contact },
   { to: '/customers', label: 'Khách hàng', icon: Building2 },
   { to: '/services', label: 'Dịch vụ', icon: Wrench },
-  { to: '/team', label: 'Nhóm', icon: UsersRound },
   { to: '/account', label: 'Cài đặt', icon: Settings },
 ]
 
@@ -245,7 +243,7 @@ export default function ManagerLayout() {
             </nav>
 
             <div className="ml-auto flex items-center gap-1 sm:gap-2">
-              <QuickSearch teamId={null} className="hidden w-64 lg:block xl:w-80" />
+              <QuickSearch projectId={null} className="hidden w-64 lg:block xl:w-80" />
               <button
                 className="grid h-11 w-11 place-items-center rounded-lg text-gray-600 hover:bg-gray-100 lg:hidden"
                 onClick={() => setSearchOpen((o) => !o)}
@@ -281,7 +279,7 @@ export default function ManagerLayout() {
           </div>
           {searchOpen && (
             <div className="px-3 pb-3 lg:hidden">
-              <QuickSearch teamId={null} className="" />
+              <QuickSearch projectId={null} className="" />
             </div>
           )}
         </header>

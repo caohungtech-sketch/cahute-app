@@ -1,21 +1,21 @@
 import { displayName } from '../../lib/profiles'
 import { supabase } from '../../lib/supabase'
-import { useTeamMembers } from '../../lib/teams'
+import { useProjectMembers } from '../../lib/projects'
 import type { Profile, Task } from '../../lib/types'
 
 interface Props {
   task: Task
-  canEdit: boolean // quản lý của nhóm
+  canEdit: boolean // quản lý của dự án
   profilesById: Map<string, Profile>
   onChanged: () => void
   onError: (message: string) => void
 }
 
-// Người làm dạng chip. Quản lý: × để gỡ, "+ Thêm" để giao thêm người trong nhóm của việc.
+// Người làm dạng chip. Quản lý: × để gỡ, "+ Thêm" để giao thêm người trong dự án của việc.
 export default function AssigneeChips({ task, canEdit, profilesById, onChanged, onError }: Props) {
-  const { members } = useTeamMembers(canEdit ? [task.team_id] : [])
+  const { members } = useProjectMembers(canEdit ? [task.project_id] : [])
   const assigned = task.task_assignees.map((a) => a.user_id)
-  const addable = (members[task.team_id] ?? []).filter((id) => !assigned.includes(id))
+  const addable = (members[task.project_id] ?? []).filter((id) => !assigned.includes(id))
 
   async function add(userId: string) {
     const { error } = await supabase.from('task_assignees').insert({ task_id: task.id, user_id: userId })
@@ -67,7 +67,7 @@ export default function AssigneeChips({ task, canEdit, profilesById, onChanged, 
         </select>
       )}
       {canEdit && addable.length === 0 && assigned.length === 0 && (
-        <span className="text-sm text-gray-500">Nhóm chưa có thành viên</span>
+        <span className="text-sm text-gray-500">Dự án chưa có thành viên</span>
       )}
     </div>
   )

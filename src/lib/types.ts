@@ -8,7 +8,7 @@ export interface Profile {
   avatar_path: string | null
 }
 
-export interface Team {
+export interface Project {
   id: string
   name: string
   manager_id: string | null
@@ -16,7 +16,7 @@ export interface Team {
 
 export interface Task {
   id: string
-  team_id: string
+  project_id: string
   title: string
   description: string
   status: TaskStatus

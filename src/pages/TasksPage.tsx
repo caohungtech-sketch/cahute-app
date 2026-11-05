@@ -5,7 +5,7 @@ import { Toast } from '../components/ui'
 import KanbanView from '../features/tasks/KanbanView'
 import TaskTableView from '../features/tasks/TaskTableView'
 import { useProfiles } from '../lib/profiles'
-import { mostUsedTeam } from '../lib/teamUsage'
+import { mostUsedProject } from '../lib/projectUsage'
 import { useIsMobile } from '../lib/useIsMobile'
 import type { Task } from '../lib/types'
 
@@ -20,12 +20,12 @@ function readView(): View {
 }
 
 export default function TasksPage() {
-  const { session, profile, managedTeams } = useAuth()
+  const { session, profile, managedProjects } = useAuth()
   const [view, setView] = useState<View>(readView)
   const uid = session?.user.id
-  // Mặc định: nhóm quản lý tương tác nhiều nhất (chưa có lịch sử → Tất cả nhóm)
-  const [teamId, setTeamId] = useState(() =>
-    managedTeams.length > 1 && uid ? (mostUsedTeam(uid, managedTeams.map((t) => t.id)) ?? '') : '',
+  // Mặc định: dự án quản lý tương tác nhiều nhất (chưa có lịch sử → Tất cả dự án)
+  const [projectId, setProjectId] = useState(() =>
+    managedProjects.length > 1 && uid ? (mostUsedProject(uid, managedProjects.map((t) => t.id)) ?? '') : '',
   )
   const [toast, setToast] = useState<string | null>(null)
   const closeToast = useCallback(() => setToast(null), [])
@@ -35,8 +35,8 @@ export default function TasksPage() {
   const isManager = profile?.role === 'manager'
 
   const canChange = useCallback(
-    (t: Task) => managedTeams.some((m) => m.id === t.team_id) || t.task_assignees.some((a) => a.user_id === uid),
-    [managedTeams, uid],
+    (t: Task) => managedProjects.some((m) => m.id === t.project_id) || t.task_assignees.some((a) => a.user_id === uid),
+    [managedProjects, uid],
   )
 
   function changeView(v: View) {
@@ -48,17 +48,17 @@ export default function TasksPage() {
     }
   }
 
-  const viewProps = { teamId: teamId || null, profilesById: byId, canChange, onError: setToast }
+  const viewProps = { projectId: projectId || null, profilesById: byId, canChange, onError: setToast }
   const effectiveView: View = isMobile ? 'list' : view // điện thoại chỉ có danh sách
-  const showToolbar = !isMobile || managedTeams.length > 1
+  const showToolbar = !isMobile || managedProjects.length > 1
 
   return (
     <div>
       <div className="mb-3 flex items-center gap-2">
         <h1 className="flex-1 text-lg font-bold md:text-xl">{isManager ? 'Công việc' : 'Việc của tôi'}</h1>
-        {isManager && managedTeams.length > 0 && (
+        {isManager && managedProjects.length > 0 && (
           <Link
-            to={teamId ? `/tasks/new?team=${teamId}` : '/tasks/new'}
+            to={projectId ? `/tasks/new?project=${projectId}` : '/tasks/new'}
             className="inline-flex min-h-10 items-center rounded-xl bg-blue-700 px-3 text-sm font-semibold text-white active:bg-blue-800 md:min-h-12 md:px-4 md:text-base"
           >
             + Tạo việc
@@ -81,15 +81,15 @@ export default function TasksPage() {
               ))}
             </div>
           )}
-          {managedTeams.length > 1 && (
+          {managedProjects.length > 1 && (
             <select
               className="min-h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm md:min-h-12 md:w-auto"
-              value={teamId}
-              onChange={(e) => setTeamId(e.target.value)}
-              aria-label="Lọc theo nhóm"
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              aria-label="Lọc theo dự án"
             >
-              <option value="">Tất cả nhóm</option>
-              {managedTeams.map((t) => (
+              <option value="">Tất cả dự án</option>
+              {managedProjects.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>
@@ -99,13 +99,13 @@ export default function TasksPage() {
         </div>
       )}
 
-      {isManager && managedTeams.length === 0 && (
+      {isManager && managedProjects.length === 0 && (
         <div className="mb-3 rounded-xl bg-blue-50 p-4 text-sm text-blue-900 ring-1 ring-blue-200">
-          Bạn chưa quản lý nhóm nào. Vào{' '}
-          <Link to="/team" className="font-semibold underline">
-            Nhóm
+          Bạn chưa quản lý dự án nào. Vào{' '}
+          <Link to="/projects" className="font-semibold underline">
+            Dự án
           </Link>{' '}
-          để tạo nhóm và thêm nhân viên trước khi giao việc.
+          để tạo dự án và thêm nhân viên trước khi giao việc.
         </div>
       )}
 

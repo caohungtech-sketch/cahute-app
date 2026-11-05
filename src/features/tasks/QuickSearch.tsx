@@ -14,7 +14,7 @@ const MIN_CHARS = 2
 const LIMIT = 8
 
 // Tìm nhanh theo tiêu đề (có dấu/không dấu, gần đúng), gợi ý dạng autocomplete. RLS tự giới hạn kết quả theo quyền.
-export default function QuickSearch({ teamId, className = 'mb-2' }: { teamId: string | null; className?: string }) {
+export default function QuickSearch({ projectId, className = 'mb-2' }: { projectId: string | null; className?: string }) {
   const navigate = useNavigate()
   const listId = useId()
   const [q, setQ] = useState('')
@@ -35,14 +35,14 @@ export default function QuickSearch({ teamId, className = 'mb-2' }: { teamId: st
     const req = ++reqRef.current
     const timer = setTimeout(async () => {
       // Không phân biệt dấu + gần đúng, xử lý ở hàm SQL search_tasks (RLS vẫn áp dụng)
-      const { data } = await supabase.rpc('search_tasks', { q: term, p_team_id: teamId, max_results: LIMIT })
+      const { data } = await supabase.rpc('search_tasks', { q: term, p_project_id: projectId, max_results: LIMIT })
       if (req !== reqRef.current) return
       setHits((data as Hit[]) ?? [])
       setActive(-1)
       setSearching(false)
     }, 250)
     return () => clearTimeout(timer)
-  }, [q, teamId])
+  }, [q, projectId])
 
   function go(hit: Hit) {
     setOpen(false)

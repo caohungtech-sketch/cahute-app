@@ -6,7 +6,7 @@ import { setTaskStatus, TASK_SELECT } from './api'
 const PAGE_SIZE = 50
 
 // Dữ liệu cho Kanban: tải dần (Tải thêm). RLS tự lọc: nhân viên chỉ nhận việc được giao.
-export function useTasks(teamId: string | null) {
+export function useTasks(projectId: string | null) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -16,10 +16,10 @@ export function useTasks(teamId: string | null) {
   const fetchRange = useCallback(
     async (from: number, to: number) => {
       let q = supabase.from('tasks').select(TASK_SELECT).order('updated_at', { ascending: false }).range(from, to)
-      if (teamId) q = q.eq('team_id', teamId)
+      if (projectId) q = q.eq('project_id', projectId)
       return q
     },
-    [teamId],
+    [projectId],
   )
 
   const reload = useCallback(async () => {
@@ -47,7 +47,7 @@ export function useTasks(teamId: string | null) {
     reload()
   }, [reload])
 
-  useTasksRealtime(`kanban-${teamId ?? 'all'}`, reload)
+  useTasksRealtime(`kanban-${projectId ?? 'all'}`, reload)
 
   // Optimistic update; trả về thông báo lỗi (nếu có) sau khi đã hoàn tác.
   const updateStatus = useCallback(async (task: Task, next: TaskStatus): Promise<string | null> => {

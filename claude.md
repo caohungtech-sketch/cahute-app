@@ -66,21 +66,21 @@ Lệnh: `npm run dev` · `npm run build` · `npm run lint` · `supabase migratio
 
 ## 4. Vai trò & phân quyền
 
-Hai vai trò trong `profiles.role`: `manager` | `staff`. **Một nhân viên có thể thuộc nhiều nhóm**: bảng `team_members (team_id, user_id)`; `teams.manager_id` là quản lý phụ trách. Người đăng ký đầu tiên là quản lý; sau đó **quản lý nào cũng nâng/hạ quyền được người khác** (trang Nhóm → Phân quyền tài khoản, không có cấp admin). Trigger `profiles_guard` chặn tự hạ quyền mình, giữ ít nhất 1 quản lý, và khi hạ quyền một quản lý thì chuyển các nhóm của họ cho người thực hiện. Gỡ nhân viên khỏi nhóm → trigger tự gỡ họ khỏi các việc **chưa hoàn thành** của nhóm đó.
+Hai vai trò trong `profiles.role`: `manager` | `staff`. ("Dự án" trước đây gọi là "Nhóm", đổi tên ở migration 0012.) **Một nhân viên có thể thuộc nhiều dự án**: bảng `project_members (project_id, user_id)`; `projects.manager_id` là quản lý phụ trách. Người đăng ký đầu tiên là quản lý; sau đó **quản lý nào cũng nâng/hạ quyền được người khác** (trang Dự án (`/projects`) → Phân quyền tài khoản, không có cấp admin). Trigger `profiles_guard` chặn tự hạ quyền mình, giữ ít nhất 1 quản lý, và khi hạ quyền một quản lý thì chuyển các dự án của họ cho người thực hiện. Gỡ nhân viên khỏi dự án → trigger tự gỡ họ khỏi các việc **chưa hoàn thành** của dự án đó.
 
-Hàm SQL dùng chung (`security definer`, `stable`): `my_role()` (không đặt tên `current_role` – trùng từ khoá Postgres), `is_manager()`, `manages_user(uid)` (true nếu người gọi quản lý **bất kỳ** nhóm nào có `uid`), `task_team_has_member(task, uid)` (người được giao phải thuộc đúng nhóm của việc). Dùng các hàm này trong policy, tránh policy tự query lại bảng `profiles` gây đệ quy.
+Hàm SQL dùng chung (`security definer`, `stable`): `my_role()` (không đặt tên `current_role` – trùng từ khoá Postgres), `is_manager()`, `manages_user(uid)` (true nếu người gọi quản lý **bất kỳ** dự án nào có `uid`), `task_project_has_member(task, uid)` (người được giao phải thuộc đúng dự án của việc). Dùng các hàm này trong policy, tránh policy tự query lại bảng `profiles` gây đệ quy.
 
 | Dữ liệu | Quản lý | Nhân viên |
 |---|---|---|
-| Công việc | Tạo/sửa/xoá/giao việc trong team mình | Chỉ **xem** việc giao cho mình; chỉ được đổi `status` |
-| Bình luận/ảnh báo cáo | Xem & viết trên việc của team | Xem & viết trên việc của mình |
+| Công việc | Tạo/sửa/xoá/giao việc trong dự án mình | Chỉ **xem** việc giao cho mình; chỉ được đổi `status` |
+| Bình luận/ảnh báo cáo | Xem & viết trên việc của dự án | Xem & viết trên việc của mình |
 | Chat | Thành viên của cuộc trò chuyện | Thành viên của cuộc trò chuyện |
-| Vị trí | Toàn bộ nhân viên trong team mình phụ trách | **Không** xem được vị trí người khác |
+| Vị trí | Toàn bộ nhân viên trong dự án mình phụ trách | **Không** xem được vị trí người khác |
 
 ## 5. Công việc (danh sách + Kanban)
 
-- Bảng `tasks`: `id, team_id, title, description, status, result, created_by, due_at, created_at, updated_at`. `result` (Kết quả) do nhân viên được giao hoặc quản lý ghi.
-- Trang chi tiết **sửa trực tiếp** (không có trang sửa riêng): quản lý sửa tiêu đề/mô tả/hạn/kết quả, nhân viên được giao chỉ sửa kết quả; nút Lưu chỉ hiện khi có thay đổi. Người làm hiển thị dạng **chip** (quản lý: × gỡ, "+ Thêm người" trong nhóm của việc).
+- Bảng `tasks`: `id, project_id, title, description, status, result, created_by, due_at, created_at, updated_at`. `result` (Kết quả) do nhân viên được giao hoặc quản lý ghi.
+- Trang chi tiết **sửa trực tiếp** (không có trang sửa riêng): quản lý sửa tiêu đề/mô tả/hạn/kết quả, nhân viên được giao chỉ sửa kết quả; nút Lưu chỉ hiện khi có thay đổi. Người làm hiển thị dạng **chip** (quản lý: × gỡ, "+ Thêm người" trong dự án của việc).
 - **Một việc giao được cho nhiều nhân viên**, quản lý thêm/bớt người bất cứ lúc nào: bảng `task_assignees (task_id, user_id, assigned_by, assigned_at)`, khoá chính `(task_id, user_id)`. Nhân viên bị gỡ khỏi việc mất quyền xem ngay (RLS dựa trên `task_assignees`); bình luận cũ của họ vẫn giữ.
 - `status` là enum 4 giá trị, hiển thị: `todo` = Chưa làm · `in_progress` = Đang làm · `paused` = Tạm dừng · `done` = Hoàn thành. Trạng thái là **chung cho cả việc**: bất kỳ người được giao nào đổi thì mọi người cùng thấy.
 - Quy tắc trạng thái (thực thi bằng trigger `BEFORE UPDATE`, không chỉ ở UI):

@@ -7,7 +7,7 @@ import type { StaffPoint } from '../features/map/StaffMap'
 import { displayName, useProfiles } from '../lib/profiles'
 import { supabase } from '../lib/supabase'
 import { STATUS_LABEL } from '../lib/taskStatus'
-import { useTeamMembers } from '../lib/teams'
+import { useProjectMembers } from '../lib/projects'
 import { formatAgo, formatDateTime, formatLongDate } from '../lib/time'
 import type { TaskStatus } from '../lib/types'
 
@@ -21,7 +21,7 @@ const DONE_DAYS = 7
 interface Row {
   id: string
   title: string
-  team_id: string
+  project_id: string
   status: TaskStatus
   due_at: string | null
   updated_at: string
@@ -97,10 +97,10 @@ function StatusBar({ counts }: { counts: Record<OpenStatus, number> }) {
 }
 
 export default function DashboardPage() {
-  const { managedTeams } = useAuth()
+  const { managedProjects } = useAuth()
   const { byId } = useProfiles()
-  const teamIds = useMemo(() => managedTeams.map((t) => t.id), [managedTeams])
-  const { members } = useTeamMembers(teamIds)
+  const projectIds = useMemo(() => managedProjects.map((t) => t.id), [managedProjects])
+  const { members } = useProjectMembers(projectIds)
 
   const [rows, setRows] = useState<Row[] | null>(null)
   const [locs, setLocs] = useState<LastLoc[]>([])
@@ -114,7 +114,7 @@ export default function DashboardPage() {
     const [t, l] = await Promise.all([
       supabase
         .from('tasks')
-        .select('id, title, team_id, status, due_at, updated_at')
+        .select('id, title, project_id, status, due_at, updated_at')
         .or(`status.neq.done,updated_at.gte.${since}`)
         .limit(5000),
       supabase.from('last_locations').select('user_id, lat, lon, recorded_at'),
@@ -149,7 +149,7 @@ export default function DashboardPage() {
 
   const stats = useMemo(() => {
     const counts: Record<OpenStatus, number> = { todo: 0, in_progress: 0, paused: 0 }
-    const perTeam = new Map<string, Record<OpenStatus | 'overdue', number>>()
+    const perProject = new Map<string, Record<OpenStatus | 'overdue', number>>()
     let overdue = 0
     let done = 0
     for (const r of rows ?? []) {
@@ -160,16 +160,16 @@ export default function DashboardPage() {
       counts[r.status]++
       const late = r.due_at !== null && new Date(r.due_at).getTime() < now
       if (late) overdue++
-      const t = perTeam.get(r.team_id) ?? { todo: 0, in_progress: 0, paused: 0, overdue: 0 }
+      const t = perProject.get(r.project_id) ?? { todo: 0, in_progress: 0, paused: 0, overdue: 0 }
       t[r.status]++
       if (late) t.overdue++
-      perTeam.set(r.team_id, t)
+      perProject.set(r.project_id, t)
     }
     const upcoming = (rows ?? [])
       .filter((r) => r.status !== 'done' && r.due_at)
       .sort((a, b) => a.due_at!.localeCompare(b.due_at!))
       .slice(0, 6)
-    return { counts, open: counts.todo + counts.in_progress + counts.paused, overdue, done, perTeam, upcoming }
+    return { counts, open: counts.todo + counts.in_progress + counts.paused, overdue, done, perProject, upcoming }
   }, [rows, now])
 
   const staffIds = useMemo(() => new Set(Object.values(members).flat()), [members])
@@ -196,7 +196,7 @@ export default function DashboardPage() {
           <h1 className="text-xl font-bold md:text-2xl">Tổng quan</h1>
           <p className="text-sm capitalize text-gray-500">{formatLongDate(new Date(now))}</p>
         </div>
-        {managedTeams.length > 0 && (
+        {managedProjects.length > 0 && (
           <Link
             to="/tasks/new"
             className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-green-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-green-700"
@@ -307,13 +307,13 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {managedTeams.length > 0 && rows && (
-        <Card title="Theo nhóm">
+      {managedProjects.length > 0 && rows && (
+        <Card title="Theo dự án">
           <div className="-mx-4 overflow-x-auto md:-mx-5">
             <table className="w-full min-w-[520px] text-sm">
               <thead>
                 <tr className="border-b border-gray-200 text-left text-gray-500">
-                  <th className="px-4 py-2 font-medium md:px-5">Nhóm</th>
+                  <th className="px-4 py-2 font-medium md:px-5">Dự án</th>
                   {OPEN.map((k) => (
                     <th key={k} className="px-3 py-2 text-right font-medium">
                       {STATUS_LABEL[k]}
@@ -323,11 +323,11 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {managedTeams.map((team) => {
-                  const t = stats.perTeam.get(team.id) ?? { todo: 0, in_progress: 0, paused: 0, overdue: 0 }
+                {managedProjects.map((project) => {
+                  const t = stats.perProject.get(project.id) ?? { todo: 0, in_progress: 0, paused: 0, overdue: 0 }
                   return (
-                    <tr key={team.id} className="border-b border-gray-100 last:border-0">
-                      <td className="px-4 py-3 font-medium md:px-5">{team.name}</td>
+                    <tr key={project.id} className="border-b border-gray-100 last:border-0">
+                      <td className="px-4 py-3 font-medium md:px-5">{project.name}</td>
                       {OPEN.map((k) => (
                         <td key={k} className="px-3 py-3 text-right tabular-nums">
                           {t[k]}

@@ -31,7 +31,7 @@ const textareaCls =
 export default function TaskDetailPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
-  const { session, managedTeams } = useAuth()
+  const { session, managedProjects } = useAuth()
   const { byId } = useProfiles()
   const [task, setTask] = useState<Task | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -81,7 +81,7 @@ export default function TaskDetailPage() {
       </div>
     )
 
-  const isManager = managedTeams.some((t) => t.id === task.team_id)
+  const isManager = managedProjects.some((t) => t.id === task.project_id)
   const isAssignee = task.task_assignees.some((a) => a.user_id === uid)
   const canEditResult = isManager || isAssignee
   const actions = isManager || isAssignee ? nextStatuses(task.status, isManager) : []

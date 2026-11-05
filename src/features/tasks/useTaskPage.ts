@@ -11,7 +11,7 @@ type Counts = Record<StatusFilter, number>
 const EMPTY_COUNTS: Counts = { all: 0, todo: 0, in_progress: 0, paused: 0, done: 0 }
 
 // Dữ liệu cho bảng: phân trang + lọc trạng thái ở server, kèm số lượng theo từng trạng thái.
-export function useTaskPage(teamId: string | null, status: StatusFilter, page: number, pageSize: number) {
+export function useTaskPage(projectId: string | null, status: StatusFilter, page: number, pageSize: number) {
   const [rows, setRows] = useState<Task[]>([])
   const [counts, setCounts] = useState<Counts>(EMPTY_COUNTS)
   const [loading, setLoading] = useState(true)
@@ -24,12 +24,12 @@ export function useTaskPage(teamId: string | null, status: StatusFilter, page: n
       .select(TASK_SELECT)
       .order('updated_at', { ascending: false })
       .range(page * pageSize, page * pageSize + pageSize - 1)
-    if (teamId) q = q.eq('team_id', teamId)
+    if (projectId) q = q.eq('project_id', projectId)
     if (status !== 'all') q = q.eq('status', status)
 
     const countFor = (s: TaskStatus) => {
       let c = supabase.from('tasks').select('id', { count: 'exact', head: true }).eq('status', s)
-      if (teamId) c = c.eq('team_id', teamId)
+      if (projectId) c = c.eq('project_id', projectId)
       return c
     }
 
@@ -47,13 +47,13 @@ export function useTaskPage(teamId: string | null, status: StatusFilter, page: n
     if (res.error && res.error.code !== 'PGRST103') setError('Không tải được danh sách công việc.')
     else setRows((res.data as Task[] | null) ?? [])
     setLoading(false)
-  }, [teamId, status, page, pageSize])
+  }, [projectId, status, page, pageSize])
 
   useEffect(() => {
     load()
   }, [load])
 
-  useTasksRealtime(`table-${teamId ?? 'all'}`, load)
+  useTasksRealtime(`table-${projectId ?? 'all'}`, load)
 
   const updateStatus = useCallback(
     async (task: Task, next: TaskStatus): Promise<string | null> => {

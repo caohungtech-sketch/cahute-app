@@ -18,25 +18,25 @@ const DESKTOP_TABS: StatusFilter[] = ['all', ...STATUSES]
 const MOBILE_PAGE_SIZE = 20
 
 interface Props {
-  teamId: string | null
+  projectId: string | null
   profilesById: Map<string, Profile>
   canChange: (t: Task) => boolean
   onError: (message: string) => void
 }
 
-export default function TaskTableView({ teamId, profilesById, canChange, onError }: Props) {
+export default function TaskTableView({ projectId, profilesById, canChange, onError }: Props) {
   const isMobile = useIsMobile()
   const [status, setStatus] = useState<StatusFilter>(isMobile ? 'todo' : 'all')
   const [page, setPage] = useState(0)
   const [desktopPageSize, setPageSize] = useState(20)
   const pageSize = isMobile ? MOBILE_PAGE_SIZE : desktopPageSize
-  const { rows, counts, total, loading, error, reload, updateStatus } = useTaskPage(teamId, status, page, pageSize)
+  const { rows, counts, total, loading, error, reload, updateStatus } = useTaskPage(projectId, status, page, pageSize)
 
   const pages = Math.max(1, Math.ceil(total / pageSize))
   const showPager = isMobile ? total > pageSize : total > 0
 
   // Đổi bộ lọc → về trang 1; số trang giảm (việc bị xoá…) → lùi về trang cuối.
-  useEffect(() => setPage(0), [teamId, status, pageSize])
+  useEffect(() => setPage(0), [projectId, status, pageSize])
   // Chuyển từ màn hình lớn sang điện thoại khi đang ở "Tất cả" → về "Chưa làm" (điện thoại không có tab này).
   useEffect(() => {
     if (isMobile && status === 'all') setStatus('todo')
@@ -57,7 +57,7 @@ export default function TaskTableView({ teamId, profilesById, canChange, onError
     <div>
       {isMobile ? (
         <>
-          <QuickSearch teamId={teamId} />
+          <QuickSearch projectId={projectId} />
           {/* 4 tab chia đều một hàng, không cuộn ngang (tránh bị cắt viền) */}
           <div className="mb-3 grid grid-cols-4 gap-1 rounded-xl bg-gray-200 p-1" role="tablist">
             {STATUSES.map((s) => (

@@ -11,7 +11,7 @@ import TasksPage from './pages/TasksPage'
 // Tách code theo trang: chỉ tải khi mở.
 const TaskDetailPage = lazy(() => import('./pages/TaskDetailPage'))
 const TaskFormPage = lazy(() => import('./pages/TaskFormPage'))
-const TeamPage = lazy(() => import('./pages/TeamPage'))
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
 const AccountPage = lazy(() => import('./pages/AccountPage'))
 const ManagerLayout = lazy(() => import('./components/ManagerLayout'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
@@ -20,7 +20,6 @@ const ComingSoonPage = lazy(() => import('./pages/ComingSoonPage'))
 // Các mục menu của quản lý chưa xây dựng
 const COMING_SOON: [string, string][] = [
   ['messages', 'Tin nhắn'],
-  ['projects', 'Dự án'],
   ['appointments', 'Lịch hẹn'],
   ['staff', 'Nhân viên'],
   ['customers', 'Khách hàng'],
@@ -68,7 +67,7 @@ function AppRoutes() {
             COMING_SOON.map(([path, title]) => <Route key={path} path={path} element={<ComingSoonPage title={title} />} />)}
           <Route path="tasks/new" element={<TaskFormPage />} />
           <Route path="tasks/:id" element={<TaskDetailPage />} />
-          <Route path="team" element={<TeamPage />} />
+          <Route path="projects" element={<ProjectsPage />} />
           <Route path="account" element={<AccountPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

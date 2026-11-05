@@ -5,14 +5,14 @@ import TaskCard from './TaskCard'
 import { useTasks } from './useTasks'
 
 interface Props {
-  teamId: string | null
+  projectId: string | null
   profilesById: Map<string, Profile>
   canChange: (t: Task) => boolean
   onError: (message: string) => void
 }
 
-export default function KanbanView({ teamId, profilesById, canChange, onError }: Props) {
-  const { tasks, loading, error, hasMore, reload, loadMore, updateStatus } = useTasks(teamId)
+export default function KanbanView({ projectId, profilesById, canChange, onError }: Props) {
+  const { tasks, loading, error, hasMore, reload, loadMore, updateStatus } = useTasks(projectId)
 
   async function change(task: Task, next: TaskStatus) {
     const err = await updateStatus(task, next)

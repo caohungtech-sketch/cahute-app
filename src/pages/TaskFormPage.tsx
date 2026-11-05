@@ -4,33 +4,33 @@ import { useAuth } from '../auth/AuthProvider'
 import { btn, ErrorBox, inputCls } from '../components/ui'
 import { displayName, useProfiles } from '../lib/profiles'
 import { supabase } from '../lib/supabase'
-import { mostUsedTeam, recordTeamUse } from '../lib/teamUsage'
-import { useTeamMembers } from '../lib/teams'
+import { mostUsedProject, recordProjectUse } from '../lib/projectUsage'
+import { useProjectMembers } from '../lib/projects'
 import { fromLocalInput } from '../lib/time'
 
 // Tạo công việc mới (chỉ quản lý). Sửa nội dung làm trực tiếp ở trang chi tiết.
 export default function TaskFormPage() {
   const navigate = useNavigate()
-  const { session, managedTeams } = useAuth()
+  const { session, managedProjects } = useAuth()
   const { byId } = useProfiles()
-  const { members } = useTeamMembers(managedTeams.map((t) => t.id))
+  const { members } = useProjectMembers(managedProjects.map((t) => t.id))
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [due, setDue] = useState('')
   const [searchParams] = useSearchParams()
-  const [teamId, setTeamId] = useState(() => {
-    // Ưu tiên nhóm đang xem ở danh sách, sau đó nhóm tương tác nhiều nhất, cuối cùng nhóm đầu tiên
-    const ids = managedTeams.map((t) => t.id)
-    const fromList = searchParams.get('team')
+  const [projectId, setProjectId] = useState(() => {
+    // Ưu tiên dự án đang xem ở danh sách, sau đó dự án tương tác nhiều nhất, cuối cùng dự án đầu tiên
+    const ids = managedProjects.map((t) => t.id)
+    const fromList = searchParams.get('project')
     if (fromList && ids.includes(fromList)) return fromList
-    return (session && mostUsedTeam(session.user.id, ids)) ?? ids[0] ?? ''
+    return (session && mostUsedProject(session.user.id, ids)) ?? ids[0] ?? ''
   })
   const [assignees, setAssignees] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const memberIds = members[teamId] ?? []
+  const memberIds = members[projectId] ?? []
 
   function toggle(uid: string) {
     setAssignees((prev) => (prev.includes(uid) ? prev.filter((x) => x !== uid) : [...prev, uid]))
@@ -43,7 +43,7 @@ export default function TaskFormPage() {
     const { data, error } = await supabase
       .from('tasks')
       .insert({
-        team_id: teamId,
+        project_id: projectId,
         title: title.trim(),
         description: description.trim(),
         due_at: fromLocalInput(due),
@@ -55,7 +55,7 @@ export default function TaskFormPage() {
       setError(error.message)
       return setBusy(false)
     }
-    recordTeamUse(session!.user.id, teamId)
+    recordProjectUse(session!.user.id, projectId)
     if (assignees.length) {
       const { error: aErr } = await supabase.from('task_assignees').insert(assignees.map((u) => ({ task_id: data.id, user_id: u })))
       if (aErr) setError(`Đã tạo việc nhưng giao người thất bại: ${aErr.message}`)
@@ -63,8 +63,8 @@ export default function TaskFormPage() {
     navigate(`/tasks/${data.id}`, { replace: true })
   }
 
-  if (managedTeams.length === 0)
-    return <ErrorBox message="Bạn cần quản lý ít nhất một nhóm để giao việc. Vào trang Nhóm để tạo nhóm." />
+  if (managedProjects.length === 0)
+    return <ErrorBox message="Bạn cần quản lý ít nhất một dự án để giao việc. Vào trang Dự án để tạo dự án." />
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -95,18 +95,18 @@ export default function TaskFormPage() {
           <input className={inputCls} type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} />
         </label>
 
-        {managedTeams.length > 1 && (
+        {managedProjects.length > 1 && (
           <label className="block">
-            <span className="mb-1 block text-sm font-medium">Nhóm</span>
+            <span className="mb-1 block text-sm font-medium">Dự án</span>
             <select
               className={inputCls}
-              value={teamId}
+              value={projectId}
               onChange={(e) => {
-                setTeamId(e.target.value)
-                setAssignees([]) // người được giao phải thuộc nhóm mới
+                setProjectId(e.target.value)
+                setAssignees([]) // người được giao phải thuộc dự án mới
               }}
             >
-              {managedTeams.map((t) => (
+              {managedProjects.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>
@@ -119,8 +119,8 @@ export default function TaskFormPage() {
           <legend className="mb-1 text-sm font-medium">Giao cho</legend>
           {memberIds.length === 0 ? (
             <p className="text-sm text-gray-500">
-              Nhóm chưa có thành viên.{' '}
-              <Link to="/team" className="text-blue-700 underline">
+              Dự án chưa có thành viên.{' '}
+              <Link to="/projects" className="text-blue-700 underline">
                 Thêm nhân viên
               </Link>
             </p>

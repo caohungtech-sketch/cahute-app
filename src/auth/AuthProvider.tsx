@@ -2,12 +2,12 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { clearProfilesCache } from '../lib/profiles'
-import type { Profile, Team } from '../lib/types'
+import type { Profile, Project } from '../lib/types'
 
 interface AuthState {
   session: Session | null
   profile: Profile | null
-  managedTeams: Team[] // các nhóm mà người dùng là quản lý
+  managedProjects: Project[] // các dự án mà người dùng là quản lý
   loading: boolean
   reload: () => Promise<void>
   signOut: () => Promise<void>
@@ -19,7 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [sessionReady, setSessionReady] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [managedTeams, setManagedTeams] = useState<Team[]>([])
+  const [managedProjects, setManagedProjects] = useState<Project[]>([])
   const [loadedFor, setLoadedFor] = useState<string | null>(null) // user id đã tải xong hồ sơ
 
   useEffect(() => {
@@ -37,15 +37,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const reload = useCallback(async () => {
     if (!userId) {
       setProfile(null)
-      setManagedTeams([])
+      setManagedProjects([])
       return
     }
     const [p, t] = await Promise.all([
       supabase.from('profiles').select('id, full_name, role, avatar_path').eq('id', userId).single(),
-      supabase.from('teams').select('id, name, manager_id').eq('manager_id', userId).order('name'),
+      supabase.from('projects').select('id, name, manager_id').eq('manager_id', userId).order('name'),
     ])
     setProfile((p.data as Profile) ?? null)
-    setManagedTeams((t.data as Team[]) ?? [])
+    setManagedProjects((t.data as Project[]) ?? [])
     setLoadedFor(userId)
   }, [userId])
 
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loading = !sessionReady || (Boolean(userId) && loadedFor !== userId)
 
   return (
-    <AuthContext.Provider value={{ session, profile, managedTeams, loading, reload, signOut }}>
+    <AuthContext.Provider value={{ session, profile, managedProjects, loading, reload, signOut }}>
       {children}
     </AuthContext.Provider>
   )
