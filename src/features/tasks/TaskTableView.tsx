@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { AvatarStack, ErrorBox, Skeleton, StatusBadge, tableCls } from '../../components/ui'
+import { ErrorBox, Skeleton, StatusBadge } from '../../components/ui'
 import { displayName } from '../../lib/profiles'
 import { actionLabel, STAFF_TRANSITIONS, STATUS_LABEL, STATUSES } from '../../lib/taskStatus'
 import { formatDateTime } from '../../lib/time'
@@ -50,8 +50,8 @@ export default function TaskTableView({ projectId, profilesById, canChange, onEr
     if (err) onError(err)
   }
 
-  const assignees = (t: Task) =>
-    t.task_assignees.map((a) => ({ id: a.user_id, name: displayName(profilesById.get(a.user_id)) }))
+  const names = (t: Task) =>
+    t.task_assignees.length ? t.task_assignees.map((a) => displayName(profilesById.get(a.user_id))).join(', ') : '—'
 
   return (
     <div>
@@ -77,21 +77,18 @@ export default function TaskTableView({ projectId, profilesById, canChange, onEr
           </div>
         </>
       ) : (
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="flex flex-1 gap-2 overflow-x-auto py-0.5">
-            {DESKTOP_TABS.map((s) => (
-              <button
-                key={s}
-                className={`min-h-10 shrink-0 rounded-full px-3 text-sm ${
-                  status === s ? 'bg-blue-700 text-white' : 'bg-white text-gray-700 ring-1 ring-gray-300'
-                }`}
-                onClick={() => setStatus(s)}
-              >
-                {s === 'all' ? 'Tất cả' : STATUS_LABEL[s]} ({counts[s]})
-              </button>
-            ))}
-          </div>
-          <QuickSearch projectId={projectId} className="w-full sm:w-72" />
+        <div className="mb-3 flex gap-2 overflow-x-auto py-0.5">
+          {DESKTOP_TABS.map((s) => (
+            <button
+              key={s}
+              className={`min-h-10 shrink-0 rounded-full px-3 text-sm ${
+                status === s ? 'bg-blue-700 text-white' : 'bg-white text-gray-700 ring-1 ring-gray-300'
+              }`}
+              onClick={() => setStatus(s)}
+            >
+              {s === 'all' ? 'Tất cả' : STATUS_LABEL[s]} ({counts[s]})
+            </button>
+          ))}
         </div>
       )}
 
@@ -118,47 +115,47 @@ export default function TaskTableView({ projectId, profilesById, canChange, onEr
           </div>
 
           {/* Màn hình lớn: bảng */}
-          <div className={`hidden md:block ${tableCls.wrap}`}>
+          <div className="hidden overflow-x-auto rounded-xl bg-white ring-1 ring-gray-200 md:block">
             <table className="w-full text-left text-sm">
-              <thead className={tableCls.head}>
+              <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase text-gray-500">
                 <tr>
-                  <th className="px-4 py-3">Công việc</th>
-                  <th className="px-3 py-3 text-center">Trạng thái</th>
-                  <th className="px-3 py-3">Người làm</th>
-                  <th className="px-3 py-3">Kết quả</th>
-                  <th className="px-3 py-3 text-right">Hạn</th>
-                  <th className="px-3 py-3 text-right">Cập nhật</th>
-                  <th className="px-3 py-3 text-center">Thao tác</th>
+                  <th className="px-3 py-3 font-medium">Công việc</th>
+                  <th className="px-3 py-3 font-medium">Trạng thái</th>
+                  <th className="px-3 py-3 font-medium">Người làm</th>
+                  <th className="px-3 py-3 font-medium">Kết quả</th>
+                  <th className="px-3 py-3 font-medium">Hạn</th>
+                  <th className="px-3 py-3 font-medium">Cập nhật</th>
+                  <th className="px-3 py-3 font-medium">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className={tableCls.body}>
+              <tbody className="divide-y divide-gray-100">
                 {rows.map((t) => {
                   const overdue = t.due_at && t.status !== 'done' && new Date(t.due_at) < new Date()
                   const actions = canChange(t) ? STAFF_TRANSITIONS[t.status] : []
                   return (
-                    <tr key={t.id} className={`align-middle ${tableCls.row}`}>
-                      <td className="max-w-xs px-4 py-2">
-                        <Link to={`/tasks/${t.id}`} className="line-clamp-2 font-semibold text-gray-900 hover:text-indigo-700 hover:underline">
+                    <tr key={t.id} className="align-middle hover:bg-gray-50">
+                      <td className="max-w-xs px-3 py-2">
+                        <Link to={`/tasks/${t.id}`} className="line-clamp-2 font-medium text-blue-800 hover:underline">
                           {t.title}
                         </Link>
                       </td>
-                      <td className="px-3 py-2 text-center">
+                      <td className="px-3 py-2">
                         <StatusBadge status={t.status} />
                       </td>
-                      <td className="px-3 py-2">
-                        <AvatarStack people={assignees(t)} />
+                      <td className="max-w-48 px-3 py-2 text-gray-700">
+                        <span className="line-clamp-2">{names(t)}</span>
                       </td>
                       <td className="max-w-56 px-3 py-2 text-gray-700">
                         <span className="line-clamp-2" title={t.result}>
                           {t.result || '—'}
                         </span>
                       </td>
-                      <td className={`whitespace-nowrap px-3 py-2 text-right tabular-nums ${overdue ? 'font-semibold text-red-700' : 'text-gray-700'}`}>
+                      <td className={`whitespace-nowrap px-3 py-2 ${overdue ? 'font-semibold text-red-700' : 'text-gray-700'}`}>
                         {t.due_at ? formatDateTime(t.due_at) : '—'}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-gray-500">{formatDateTime(t.updated_at)}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-gray-500">{formatDateTime(t.updated_at)}</td>
                       <td className="px-3 py-2">
-                        <div className={`flex justify-center gap-1 ${tableCls.actions}`}>
+                        <div className="flex gap-1">
                           {actions.map((s) => (
                             <button
                               key={s}
