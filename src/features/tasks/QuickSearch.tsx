@@ -14,7 +14,7 @@ const MIN_CHARS = 2
 const LIMIT = 8
 
 // Tìm nhanh theo tiêu đề (có dấu/không dấu, gần đúng), gợi ý dạng autocomplete. RLS tự giới hạn kết quả theo quyền.
-export default function QuickSearch({ teamId }: { teamId: string | null }) {
+export default function QuickSearch({ teamId, className = 'mb-2' }: { teamId: string | null; className?: string }) {
   const navigate = useNavigate()
   const listId = useId()
   const [q, setQ] = useState('')
@@ -69,7 +69,7 @@ export default function QuickSearch({ teamId }: { teamId: string | null }) {
   const showList = open && q.trim().length >= MIN_CHARS
 
   return (
-    <div className="relative mb-2">
+    <div className={`relative ${className}`}>
       <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400" aria-hidden>
         🔍
       </span>

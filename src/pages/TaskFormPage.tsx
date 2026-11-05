@@ -68,7 +68,7 @@ export default function TaskFormPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <Link to="/" className="mb-3 inline-flex min-h-12 items-center text-sm text-blue-700">
+      <Link to="/tasks" className="mb-3 inline-flex min-h-12 items-center text-sm text-blue-700">
         ← Quay lại
       </Link>
       <h1 className="mb-4 text-xl font-bold">Tạo công việc</h1>

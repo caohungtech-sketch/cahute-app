@@ -30,7 +30,7 @@ export default function Layout() {
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex max-w-md">
-          <NavItem to="/" label="Công việc" icon="📋" />
+          <NavItem to="/tasks" label="Công việc" icon="📋" />
           {isManager && <NavItem to="/team" label="Nhóm" icon="👥" />}
           <NavItem to="/account" label="Tài khoản" icon="👤" />
         </div>

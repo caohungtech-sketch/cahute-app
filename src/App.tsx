@@ -13,6 +13,20 @@ const TaskDetailPage = lazy(() => import('./pages/TaskDetailPage'))
 const TaskFormPage = lazy(() => import('./pages/TaskFormPage'))
 const TeamPage = lazy(() => import('./pages/TeamPage'))
 const AccountPage = lazy(() => import('./pages/AccountPage'))
+const ManagerLayout = lazy(() => import('./components/ManagerLayout'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const ComingSoonPage = lazy(() => import('./pages/ComingSoonPage'))
+
+// Các mục menu của quản lý chưa xây dựng
+const COMING_SOON: [string, string][] = [
+  ['messages', 'Tin nhắn'],
+  ['projects', 'Dự án'],
+  ['appointments', 'Lịch hẹn'],
+  ['staff', 'Nhân viên'],
+  ['customers', 'Khách hàng'],
+  ['services', 'Dịch vụ'],
+  ['help', 'Trợ giúp'],
+]
 
 function AppRoutes() {
   const { session, profile, loading, reload, signOut } = useAuth()
@@ -41,11 +55,17 @@ function AppRoutes() {
       </FullScreenMessage>
     )
 
+  const isManager = profile.role === 'manager'
+
   return (
     <Suspense fallback={<div className="p-4"><Skeleton rows={2} /></div>}>
       <Routes>
-        <Route element={<Layout />}>
-          <Route index element={<TasksPage />} />
+        {/* Quản lý: sidebar + thanh trên; nhân viên: thanh điều hướng dưới */}
+        <Route element={isManager ? <ManagerLayout /> : <Layout />}>
+          <Route index element={isManager ? <DashboardPage /> : <Navigate to="/tasks" replace />} />
+          <Route path="tasks" element={<TasksPage />} />
+          {isManager &&
+            COMING_SOON.map(([path, title]) => <Route key={path} path={path} element={<ComingSoonPage title={title} />} />)}
           <Route path="tasks/new" element={<TaskFormPage />} />
           <Route path="tasks/:id" element={<TaskDetailPage />} />
           <Route path="team" element={<TeamPage />} />

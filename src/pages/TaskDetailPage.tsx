@@ -75,7 +75,7 @@ export default function TaskDetailPage() {
     return (
       <div className="space-y-3">
         <ErrorBox message={error ?? 'Không tìm thấy công việc.'} onRetry={load} />
-        <Link to="/" className={btn.secondary}>
+        <Link to="/tasks" className={btn.secondary}>
           ← Về danh sách
         </Link>
       </div>
@@ -123,12 +123,12 @@ export default function TaskDetailPage() {
     if (!confirm('Xoá công việc này? Toàn bộ bình luận và ảnh liên quan cũng bị xoá.')) return
     const { error } = await supabase.from('tasks').delete().eq('id', task!.id)
     if (error) setToast(error.message)
-    else navigate('/', { replace: true })
+    else navigate('/tasks', { replace: true })
   }
 
   return (
     <div className="mx-auto max-w-2xl">
-      <Link to="/" className="mb-3 inline-flex min-h-12 items-center text-sm text-blue-700">
+      <Link to="/tasks" className="mb-3 inline-flex min-h-12 items-center text-sm text-blue-700">
         ← Công việc
       </Link>
 
