@@ -1,7 +1,7 @@
-import { Pencil, Trash2, X } from 'lucide-react'
+import { Pencil, Search, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/AuthProvider'
-import { ErrorBox, inputCls, Skeleton, Toast } from '../components/ui'
+import { ErrorBox, inputCls, Pagination, Skeleton, tableCls, Toast } from '../components/ui'
 import { displayName, useProfiles } from '../lib/profiles'
 import { supabase } from '../lib/supabase'
 import { formatDateOnly } from '../lib/time'
@@ -15,6 +15,13 @@ const EMPTY_DETAILS: Omit<StaffDetails, 'user_id'> = {
   id_issued_on: null,
   id_issued_place: '',
   hired_on: null,
+}
+
+const PAGE_SIZES = [10, 20, 50]
+
+// Bỏ dấu tiếng Việt để tìm "nguyen" ra "Nguyễn"
+function normalize(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase()
 }
 
 const greenBtn =
@@ -34,6 +41,9 @@ export default function StaffPage() {
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState<Profile | null>(null)
+  const [q, setQ] = useState('')
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(20)
   const [toast, setToast] = useState<string | null>(null)
   const closeToast = useCallback(() => setToast(null), [])
 
@@ -59,6 +69,23 @@ export default function StaffPage() {
   }, [load])
 
   const visible = useMemo(() => profiles.filter((p) => !p.deleted_at), [profiles])
+  // Tìm theo họ tên, SĐT, CCCD (không phân biệt dấu, hoa/thường)
+  const filtered = useMemo(() => {
+    const term = normalize(q.trim())
+    if (!term) return visible
+    return visible.filter((p) => {
+      const d = details.get(p.id)
+      return [p.full_name, d?.phone ?? '', d?.id_number ?? ''].some((v) => normalize(v).includes(term))
+    })
+  }, [visible, details, q])
+  const pageRows = filtered.slice(page * pageSize, (page + 1) * pageSize)
+
+  // Đổi bộ lọc/số dòng → về trang 1; số trang giảm (vừa xoá người) → lùi về trang cuối
+  useEffect(() => setPage(0), [q, pageSize])
+  useEffect(() => {
+    const last = Math.max(0, Math.ceil(filtered.length / pageSize) - 1)
+    if (page > last) setPage(last)
+  }, [filtered.length, page, pageSize])
   const myProjectIds = useMemo(() => new Set(managedProjects.map((p) => p.id)), [managedProjects])
 
   if (profile?.role !== 'manager') return <ErrorBox message="Chỉ quản lý mới dùng được trang này." />
@@ -151,10 +178,10 @@ export default function StaffPage() {
     )
   }
 
-  function roleCell(p: Profile) {
+  function roleCell(p: Profile, center = false) {
     const isSelf = p.id === uid
     return (
-      <div className="flex flex-col items-start gap-1">
+      <div className={`flex flex-col gap-1 ${center ? 'items-center' : 'items-start'}`}>
         <span
           className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${
             p.role === 'manager' ? 'bg-yellow-50 text-yellow-800 ring-1 ring-yellow-200' : 'bg-gray-100 text-gray-700'
@@ -176,7 +203,7 @@ export default function StaffPage() {
 
   function actions(p: Profile) {
     return (
-      <div className="flex justify-end">
+      <div className="flex justify-center">
         <button className={iconBtn} onClick={() => setEditing(p)} aria-label={`Sửa thông tin ${displayName(p)}`} title="Sửa thông tin">
           <Pencil className="h-4 w-4" aria-hidden />
         </button>
@@ -204,49 +231,63 @@ export default function StaffPage() {
         </p>
       </div>
 
+      <div className="relative w-full sm:max-w-sm">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden />
+        <input
+          className={`${inputCls} pl-9`}
+          type="search"
+          placeholder="Tìm theo tên, SĐT, CCCD…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          aria-label="Tìm nhân viên"
+        />
+      </div>
+
       {error && <ErrorBox message={error} onRetry={load} />}
       {!error && !loaded && <Skeleton rows={4} />}
 
       {loaded && !error && (
         <>
           {/* Desktop: bảng */}
-          <section className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 md:block">
+          {filtered.length === 0 && <p className="py-12 text-center text-gray-500">Không tìm thấy nhân viên nào.</p>}
+
+          <section className={`hidden ${filtered.length ? 'md:block' : ''} ${tableCls.wrap}`}>
             <table className="w-full min-w-[1100px] text-left text-sm">
-              <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+              <thead className={tableCls.head}>
                 <tr>
-                  <th className="px-4 py-3 font-medium">Họ tên</th>
-                  <th className="px-3 py-3 font-medium">Số điện thoại</th>
-                  <th className="px-3 py-3 font-medium">CCCD</th>
-                  <th className="px-3 py-3 font-medium">Ngày cấp</th>
-                  <th className="px-3 py-3 font-medium">Nơi cấp</th>
-                  <th className="px-3 py-3 font-medium">Ngày vào làm</th>
-                  <th className="px-3 py-3 font-medium">Vai trò</th>
-                  <th className="px-3 py-3 font-medium">Dự án</th>
-                  <th className="px-3 py-3" aria-label="Thao tác" />
+                  <th className="px-4 py-3">Họ tên</th>
+                  <th className="px-3 py-3">Số điện thoại</th>
+                  <th className="px-3 py-3">CCCD</th>
+                  <th className="px-3 py-3 text-right">Ngày cấp</th>
+                  <th className="px-3 py-3">Nơi cấp</th>
+                  <th className="px-3 py-3 text-right">Ngày vào làm</th>
+                  <th className="px-3 py-3 text-center">Vai trò</th>
+                  <th className="px-3 py-3">Dự án</th>
+                  <th className="px-3 py-3 text-center">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {visible.map((p) => {
+              <tbody className={tableCls.body}>
+                {pageRows.map((p) => {
                   const d = details.get(p.id)
                   return (
-                    <tr key={p.id} className="align-top hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">
+                    <tr key={p.id} className={`align-top ${tableCls.row}`}>
+                      <td className="px-4 py-3 font-semibold text-gray-900">
                         {displayName(p)}
                         {p.id === uid && <span className="font-normal text-gray-500"> (bạn)</span>}
                       </td>
                       <td className="whitespace-nowrap px-3 py-3 tabular-nums">{d?.phone}</td>
                       <td className="whitespace-nowrap px-3 py-3 tabular-nums">{d?.id_number}</td>
-                      <td className="whitespace-nowrap px-3 py-3 tabular-nums">{formatDateOnly(d?.id_issued_on ?? null)}</td>
+                      <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">{formatDateOnly(d?.id_issued_on ?? null)}</td>
                       <td className="px-3 py-3">{d?.id_issued_place}</td>
-                      <td className="whitespace-nowrap px-3 py-3 tabular-nums">{formatDateOnly(d?.hired_on ?? null)}</td>
+                      <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">{formatDateOnly(d?.hired_on ?? null)}</td>
                       <td className="px-3 py-3">
-                        {roleCell(p)}
+                        {roleCell(p, true)}
                       </td>
                       <td className="px-3 py-3">
                         {projectChips(p)}
                       </td>
                       <td className="px-2 py-1">
-                        {actions(p)}
+                        <div className={tableCls.actions}>{actions(p)}</div>
                       </td>
                     </tr>
                   )
@@ -257,7 +298,7 @@ export default function StaffPage() {
 
           {/* Điện thoại: thẻ */}
           <ul className="space-y-3 md:hidden">
-            {visible.map((p) => {
+            {pageRows.map((p) => {
               const d = details.get(p.id)
               const rows: [string, string][] = [
                 ['SĐT', d?.phone ?? ''],
@@ -296,6 +337,18 @@ export default function StaffPage() {
               )
             })}
           </ul>
+
+          {filtered.length > 0 && (
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              total={filtered.length}
+              unit="nhân viên"
+              sizes={PAGE_SIZES}
+              onPage={setPage}
+              onPageSize={setPageSize}
+            />
+          )}
         </>
       )}
 
