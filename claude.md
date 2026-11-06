@@ -37,7 +37,7 @@ src/
   sw.ts           service worker (precache + push)
 supabase/
   migrations/     mọi thay đổi schema/RLS/trigger/cron
-  functions/      notify/ telegram-webhook/   (chưa có thư mục này)
+  functions/      storage-cleanup/   (notify/ telegram-webhook/: chưa có)
 docs/             đặc tả chi tiết của từng tính năng lớn
 ```
 
@@ -118,6 +118,7 @@ Không theo dõi liên tục: khi nhân viên bấm đổi trạng thái việc,
 - Cạnh dài tối đa **1280 px**, xuất **WebP chất lượng 0.7**. Nếu trình duyệt không ra được WebP thì dùng JPEG 0.75. Mục tiêu ≤ 300 KB; nếu vượt thì giảm chất lượng từng bước (tối thiểu 0.5).
 - Đọc ảnh bằng `createImageBitmap(file, { imageOrientation: 'from-image' })` để giữ đúng chiều xoay. Vẽ lại qua canvas để loại bỏ EXIF (có GPS).
 - Phía server: bucket **private**, `file_size_limit` 1 MB, `allowed_mime_types` `image/webp, image/jpeg`. Đường dẫn `tasks/{task_id}/…`, `chat/{conversation_id}/…`, policy Storage theo đúng quyền của mục 5. Hiển thị bằng signed URL và `loading="lazy"`.
+- **Ảnh mồ côi** (xoá việc/dự án, gửi bình luận lỗi): Edge Function `storage-cleanup` dọn hằng đêm qua Storage API, không xoá file bằng SQL. Thêm thư mục ảnh mới (ví dụ `chat/…`) thì mở rộng `find_orphan_attachments`. Xem `docs/storage-cleanup.md`.
 
 ## 11. PWA & giao diện điện thoại
 
