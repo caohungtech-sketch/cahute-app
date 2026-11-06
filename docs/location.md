@@ -21,5 +21,5 @@
 ## Hiển thị (chỉ quản lý)
 
 - **Bản đồ trang Tổng quan** (`features/map/StaffMap.tsx`): **Leaflet + OpenStreetMap**, không cần API key; tải riêng khi mở trang. Chấm xanh = có vị trí trong 2 giờ qua, xám = cũ hơn. Bọc `isolate` để các lớp z-index của Leaflet không đè thanh trên.
-- Ô bản đồ `tile.openstreetmap.org`: phải giữ dòng ghi nguồn "© OpenStreetMap"; chỉ hợp lượng truy cập nhỏ. Nếu nhiều người dùng, chuyển sang nhà cung cấp ô bản đồ khác (đổi `TILE_URL`).
-- **Lịch sử trạng thái** trong trang chi tiết việc của quản lý (`features/tasks/StatusHistory.tsx`): thời gian, người đổi, từ → sang, link "Xem vị trí" mở openstreetmap.org.
+- Ô bản đồ: dữ liệu OpenStreetMap do **CARTO** vẽ (`basemaps.cartocdn.com`, kiểu Voyager); phải giữ dòng ghi nguồn "© OpenStreetMap © CARTO"; chỉ hợp lượng truy cập nhỏ. **Không dùng `tile.openstreetmap.org`/`openstreetmap.org`**: DNS của VNPT (và có thể nhà mạng VN khác) không phân giải được các tên miền này (đã kiểm tra 06/11/2026) → bản đồ chỉ còn ô xám. Khi đổi nguồn ô bản đồ, thử tải một ô trên mạng VN trước.
+- **Lịch sử trạng thái** trong trang chi tiết việc của quản lý (`features/tasks/StatusHistory.tsx`): thời gian, người đổi, từ → sang, link "Xem vị trí" mở **Google Maps** (`google.com/maps?q=lat,lon`, không cần API key; điện thoại tự mở app Google Maps).

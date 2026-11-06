@@ -19,7 +19,9 @@ interface StatusEvent {
   accuracy: number | null
 }
 
-const osmLink = (lat: number, lon: number) => `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}`
+// Link Google Maps (không cần API key): mở được với mọi nhà mạng, trên điện thoại tự mở app Google Maps.
+// Không dùng openstreetmap.org vì DNS của một số nhà mạng VN (VNPT) không phân giải được.
+const mapLink = (lat: number, lon: number) => `https://www.google.com/maps?q=${lat},${lon}`
 
 // Lịch sử đổi trạng thái của một việc (DB tự ghi qua trigger), kèm vị trí nếu nhân viên gửi.
 // version: đổi khi việc thay đổi (updated_at) → tải lại lịch sử.
@@ -66,7 +68,7 @@ export default function StatusHistory({
               </span>
               {e.lat !== null && e.lon !== null && (
                 <a
-                  href={osmLink(e.lat, e.lon)}
+                  href={mapLink(e.lat, e.lon)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex min-h-10 items-center gap-1 text-indigo-700 hover:underline"
