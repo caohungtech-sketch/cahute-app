@@ -1,6 +1,8 @@
-import { Pencil, Trash2, X } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/AuthProvider'
+import ResponsiveDialog from '../components/ResponsiveDialog'
+import { Button } from '../components/shadcn/button'
 import { ErrorBox, inputCls, Skeleton, Toast } from '../components/ui'
 import { displayName, useProfiles } from '../lib/profiles'
 import { supabase } from '../lib/supabase'
@@ -17,10 +19,6 @@ const EMPTY_DETAILS: Omit<StaffDetails, 'user_id'> = {
   hired_on: null,
 }
 
-const greenBtn =
-  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-green-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-green-700 disabled:opacity-50'
-const plainBtn =
-  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-medium text-gray-700 ring-1 ring-gray-300 hover:bg-gray-100'
 const iconBtn = 'grid h-11 w-11 shrink-0 place-items-center rounded-xl text-gray-500 hover:bg-gray-100'
 
 // Danh sách nhân viên: thông tin nhân sự, vai trò, dự án. Thay cho trang Phân quyền cũ.
@@ -328,24 +326,8 @@ function EditDialog({
   const label = 'mb-1 block text-sm font-medium'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4" onClick={onClose}>
-      <form
-        onSubmit={save}
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-[90dvh] w-full overflow-y-auto rounded-t-2xl bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-xl sm:max-w-lg sm:rounded-2xl sm:p-5"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="edit-staff-title"
-      >
-        <div className="mb-4 flex items-center gap-2">
-          <h2 id="edit-staff-title" className="flex-1 text-base font-semibold">
-            Thông tin nhân viên
-          </h2>
-          <button type="button" className={iconBtn} onClick={onClose} aria-label="Đóng">
-            <X className="h-5 w-5" aria-hidden />
-          </button>
-        </div>
-
+    <ResponsiveDialog open onClose={onClose} title="Thông tin nhân viên">
+      <form onSubmit={save}>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="sm:col-span-2">
             <span className={label}>Họ tên</span>
@@ -380,14 +362,14 @@ function EditDialog({
         </div>
 
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" className={plainBtn} onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose}>
             Huỷ
-          </button>
-          <button className={greenBtn} disabled={busy || !fullName.trim()}>
+          </Button>
+          <Button type="submit" disabled={busy || !fullName.trim()}>
             {busy ? 'Đang lưu…' : 'Lưu'}
-          </button>
+          </Button>
         </div>
       </form>
-    </div>
+    </ResponsiveDialog>
   )
 }

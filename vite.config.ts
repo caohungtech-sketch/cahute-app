@@ -4,6 +4,9 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  resolve: {
+    alias: { '@': '/src' }, // '@/…' = 'src/…' (shadcn/ui dùng đường dẫn này)
+  },
   plugins: [
     react(),
     tailwindcss(),
