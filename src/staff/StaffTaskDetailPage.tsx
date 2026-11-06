@@ -57,7 +57,7 @@ export default function StaffTaskDetailPage() {
   const dirty = resultDraft !== null && resultDraft.trim() !== task.result
 
   async function change(next: TaskStatus) {
-    const err = await updateStatus(next)
+    const err = await updateStatus(next, { withLocation: true }) // nhân viên: gửi kèm vị trí hiện tại
     if (err) setToast(err)
   }
 

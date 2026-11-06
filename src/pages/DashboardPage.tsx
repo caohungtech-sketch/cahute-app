@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
-import { AlarmClock, CircleCheck, ListTodo, MapPin, Plus, Timer } from 'lucide-react'
+import { AlarmClock, CircleCheck, ListTodo, Plus, Timer } from 'lucide-react'
 import { useAuth } from '../auth/AuthProvider'
 import { ErrorBox, StatusBadge } from '../components/ui'
 import type { StaffPoint } from '../features/map/StaffMap'
@@ -11,11 +11,10 @@ import { useProjectMembers } from '../lib/projects'
 import { formatAgo, formatDateTime, formatLongDate } from '../lib/time'
 import type { TaskStatus } from '../lib/types'
 
-// Bản đồ (Google Maps) chỉ tải khi mở trang này.
+// Bản đồ (Leaflet + OpenStreetMap) chỉ tải khi mở trang này.
 const StaffMap = lazy(() => import('../features/map/StaffMap'))
-const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
 
-const ONLINE_MS = 10 * 60 * 1000 // Traccar gửi mỗi 60 s → quá 10 phút coi như mất kết nối
+const RECENT_MS = 2 * 60 * 60 * 1000 // vị trí gửi kèm khi đổi trạng thái việc → trong 2 giờ qua coi là "mới"
 const DONE_DAYS = 7
 
 interface Row {
@@ -182,12 +181,12 @@ export default function DashboardPage() {
           lat: l.lat,
           lon: l.lon,
           recordedAt: l.recorded_at,
-          online: now - new Date(l.recorded_at).getTime() < ONLINE_MS,
+          recent: now - new Date(l.recorded_at).getTime() < RECENT_MS,
         }))
-        .sort((a, b) => Number(b.online) - Number(a.online) || a.name.localeCompare(b.name, 'vi')),
+        .sort((a, b) => Number(b.recent) - Number(a.recent) || a.name.localeCompare(b.name, 'vi')),
     [locs, byId, now],
   )
-  const onlineCount = points.filter((p) => p.online).length
+  const recentCount = points.filter((p) => p.recent).length
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -237,33 +236,24 @@ export default function DashboardPage() {
           extra={
             <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-800">
               <span className="h-2 w-2 rounded-full bg-green-600" aria-hidden />
-              {onlineCount}/{staffIds.size || points.length} đang trực tuyến
+              {recentCount}/{staffIds.size || points.length} có vị trí trong 2 giờ qua
             </span>
           }
         >
           <div className="h-72 overflow-hidden rounded-xl bg-gray-100 md:h-96">
-            {MAPS_KEY ? (
-              <Suspense fallback={<div className="h-full animate-pulse bg-gray-100" />}>
-                <StaffMap points={points} apiKey={MAPS_KEY} />
-              </Suspense>
-            ) : (
-              <div className="grid h-full place-items-center p-4 text-center text-sm text-gray-500">
-                <div>
-                  <MapPin className="mx-auto mb-2 h-8 w-8 text-gray-400" aria-hidden />
-                  Chưa cấu hình VITE_GOOGLE_MAPS_API_KEY nên chưa hiển thị được bản đồ.
-                </div>
-              </div>
-            )}
+            <Suspense fallback={<div className="h-full animate-pulse bg-gray-100" />}>
+              <StaffMap points={points} />
+            </Suspense>
           </div>
           {points.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-500">Chưa có nhân viên nào gửi vị trí (cần cài Traccar Client).</p>
+            <p className="mt-3 text-sm text-gray-500">Chưa có vị trí nào. Vị trí được ghi khi nhân viên đổi trạng thái việc trên điện thoại (cần cho phép dùng vị trí).</p>
           ) : (
             <ul className="mt-3 grid gap-x-4 sm:grid-cols-2">
               {points.slice(0, 8).map((p) => (
                 <li key={p.userId} className="flex min-h-10 items-center gap-2 text-sm">
-                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${p.online ? 'bg-green-600' : 'bg-gray-400'}`} aria-hidden />
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${p.recent ? 'bg-green-600' : 'bg-gray-400'}`} aria-hidden />
                   <span className="flex-1 truncate">{p.name}</span>
-                  <span className="text-xs text-gray-500">{p.online ? 'Trực tuyến' : formatAgo(p.recordedAt, now)}</span>
+                  <span className="text-xs text-gray-500">{formatAgo(p.recordedAt, now)}</span>
                 </li>
               ))}
             </ul>

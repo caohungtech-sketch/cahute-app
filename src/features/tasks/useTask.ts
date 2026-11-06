@@ -34,12 +34,12 @@ export function useTask(id: string) {
 
   // Optimistic update; trả về thông báo lỗi (nếu có) sau khi đã hoàn tác.
   const updateStatus = useCallback(
-    async (next: TaskStatus): Promise<string | null> => {
+    async (next: TaskStatus, opts?: { withLocation?: boolean }): Promise<string | null> => {
       const prev = queryClient.getQueryData<Task | null>(queryKey)
       if (!prev) return null
       await queryClient.cancelQueries({ queryKey })
       queryClient.setQueryData<Task | null>(queryKey, () => ({ ...prev, status: next }))
-      const err = await setTaskStatus(id, next)
+      const err = await setTaskStatus(id, next, opts)
       if (err) queryClient.setQueryData<Task | null>(queryKey, prev)
       queryClient.invalidateQueries({ queryKey: TASKS_KEY }) // danh sách + số lượng theo trạng thái
       return err

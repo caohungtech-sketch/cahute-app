@@ -5,6 +5,7 @@ import { btn, ErrorBox, inputCls, Skeleton, StatusBadge, Toast } from '../compon
 import { setTaskStatus, TASK_SELECT } from '../features/tasks/api'
 import AssigneeChips from '../features/tasks/AssigneeChips'
 import Comments from '../features/tasks/Comments'
+import StatusHistory from '../features/tasks/StatusHistory'
 import { displayName, useProfiles } from '../lib/profiles'
 import { supabase } from '../lib/supabase'
 import { actionLabel, nextStatuses } from '../lib/taskStatus'
@@ -233,6 +234,7 @@ export default function TaskDetailPage() {
         )}
       </article>
 
+      {isManager && <StatusHistory taskId={task.id} version={task.updated_at} profilesById={byId} />}
       <Comments taskId={task.id} userId={uid} profilesById={byId} />
       <Toast message={toast} onClose={closeToast} />
     </div>

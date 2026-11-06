@@ -61,14 +61,14 @@ export function useTaskPage(projectId: string | null, status: StatusFilter, page
   }, [refetch])
 
   const updateStatus = useCallback(
-    async (task: Task, next: TaskStatus): Promise<string | null> => {
+    async (task: Task, next: TaskStatus, opts?: { withLocation?: boolean }): Promise<string | null> => {
       const patch = (s: TaskStatus) =>
         queryClient.setQueryData<PageData>(queryKey, (old) =>
           old && { ...old, rows: old.rows.map((t) => (t.id === task.id ? { ...t, status: s } : t)) },
         )
       await queryClient.cancelQueries({ queryKey })
       patch(next)
-      const err = await setTaskStatus(task.id, next)
+      const err = await setTaskStatus(task.id, next, opts)
       if (err) patch(task.status)
       else queryClient.invalidateQueries({ queryKey: TASKS_KEY }) // cập nhật số lượng theo trạng thái
       return err

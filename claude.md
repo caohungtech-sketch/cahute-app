@@ -1,6 +1,6 @@
 # CLAUDE.md – Cahute App
 
-Web app giao nhận việc cho đội nhân viên hiện trường: danh sách + Kanban, chat nội bộ, thông báo giao việc qua Web Push và Telegram, định vị nhân viên bằng Traccar Client. Nhân viên dùng trên điện thoại dưới dạng PWA.
+Web app giao nhận việc cho đội nhân viên hiện trường: danh sách + Kanban, chat nội bộ, thông báo giao việc qua Web Push và Telegram, ghi vị trí nhân viên khi đổi trạng thái việc. Nhân viên dùng trên điện thoại dưới dạng PWA.
 
 ## 1. Nguyên tắc làm việc
 
@@ -22,7 +22,7 @@ VS Code (Claude Code) → GitHub (main) → Vercel (tự build & deploy) → Sup
   - Giao diện nhân viên: **Konsta UI** kiểu iOS cho mọi máy, chỉ dùng trong `Layout.tsx` và `src/staff/` (tải riêng, quản lý không tải). Nhân viên có trang riêng cho Việc, Chi tiết việc, Tài khoản (`App.tsx` chọn theo vai trò); logic dữ liệu dùng chung trong `features/`.
   - Lint: **Oxlint** (`.oxlintrc.json`), vì typescript-eslint chưa hỗ trợ TypeScript 7.
 - **Backend:** Supabase – Postgres + RLS, Auth, Realtime, Storage, Edge Functions (Deno), `pg_cron`.
-- **Bản đồ:** Google Maps JavaScript API (chỉ tải ở trang bản đồ của quản lý).
+- **Bản đồ:** Leaflet + OpenStreetMap (miễn phí, không cần API key; chỉ tải ở trang Tổng quan của quản lý).
 - **Hosting:** Vercel. SPA cần `vercel.json` rewrite mọi đường dẫn về `/index.html`. Mỗi push lên `main` là deploy production; nhánh khác là preview.
 
 Cấu trúc thư mục:
@@ -37,7 +37,7 @@ src/
   sw.ts           service worker (precache + push)
 supabase/
   migrations/     mọi thay đổi schema/RLS/trigger/cron
-  functions/      traccar-ingest/ notify/ telegram-webhook/   (chưa có thư mục này)
+  functions/      notify/ telegram-webhook/   (chưa có thư mục này)
 docs/             đặc tả chi tiết của từng tính năng lớn
 ```
 
@@ -54,7 +54,7 @@ Phong cách hiện đại lấy cảm hứng từ Bitrix24:
 ## 4. Bảo mật & bí mật
 
 - **Không bao giờ commit `.env*`** (trừ `.env.example`). Kiểm tra `.gitignore` trước khi commit.
-- Biến có tiền tố `VITE_` lộ ra trình duyệt → chỉ dùng cho giá trị công khai: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_GOOGLE_MAPS_API_KEY` (giới hạn theo domain), `VITE_VAPID_PUBLIC_KEY`. Khai báo trong Vercel → Project Settings → Environment Variables.
+- Biến có tiền tố `VITE_` lộ ra trình duyệt → chỉ dùng cho giá trị công khai: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_VAPID_PUBLIC_KEY`. Khai báo trong Vercel → Project Settings → Environment Variables.
 - Bí mật chỉ nằm trong `supabase secrets set`: `SUPABASE_SERVICE_ROLE_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `VAPID_PRIVATE_KEY`. Không bao giờ dùng service role ở frontend.
 - **Phân quyền thực thi ở database (RLS + trigger)**, giao diện chỉ ẩn/hiện cho tiện. Mọi bảng mới phải `enable row level security` kèm policy ngay trong cùng migration.
 - Schema chỉ thay đổi qua file trong `supabase/migrations/`. Nếu chạy tay trong SQL Editor thì vẫn phải lưu lại thành migration.
@@ -75,7 +75,7 @@ Hàm SQL dùng chung (`security definer`, `stable`): `my_role()` (không đặt 
 | Công việc | Tạo/sửa/xoá/giao việc trong dự án mình | Chỉ **xem** việc giao cho mình; chỉ được đổi `status` |
 | Bình luận/ảnh báo cáo | Xem & viết trên việc của dự án | Xem & viết trên việc của mình |
 | Chat | Thành viên của cuộc trò chuyện | Thành viên của cuộc trò chuyện |
-| Vị trí | Toàn bộ nhân viên trong dự án mình phụ trách | **Không** xem được vị trí người khác |
+| Vị trí & lịch sử trạng thái | Nhân viên/việc trong dự án mình phụ trách | Chỉ của mình; **không** xem được vị trí người khác |
 
 ## 6. Công việc (danh sách + Kanban)
 
@@ -108,9 +108,9 @@ Hàm SQL dùng chung (`security definer`, `stable`): `my_role()` (không đặt 
 
 Chỉ người **mới được thêm** vào việc nhận thông báo (trigger `AFTER INSERT` trên `task_assignees` → bảng `notifications` → Edge Function `notify`). **Không bao giờ để thông báo làm chặn hoặc rollback việc giao việc.** Hiện trạng: đã có bảng trong DB (migration 0003); chưa có Edge Function `notify`/`telegram-webhook` và giao diện. Đặc tả đầy đủ: **`docs/notifications.md`** – đọc trước khi làm.
 
-## 9. Định vị bằng Traccar
+## 9. Vị trí nhân viên (ghi khi đổi trạng thái)
 
-Nhân viên cài Traccar Client gửi vị trí 60 s/lần về Edge Function `traccar-ingest` → bảng `locations` (lưu 30 ngày) + `last_locations`. Chỉ quản lý của dự án xem được vị trí nhân viên. Hiện trạng: đã có bảng trong DB (migration 0004) và bản đồ vị trí ở trang Tổng quan (`features/map/StaffMap.tsx`); chưa có Edge Function `traccar-ingest`. Đặc tả đầy đủ: **`docs/traccar.md`** – đọc trước khi làm.
+Không theo dõi liên tục: khi nhân viên bấm đổi trạng thái việc, app lấy vị trí **một lần** và gửi qua RPC `set_task_status`; DB tự ghi lịch sử mọi lần đổi trạng thái vào `task_status_events` và cập nhật `last_locations`. **Không bao giờ chặn việc đổi trạng thái vì không lấy được vị trí.** Toạ độ tự xoá sau 30 ngày. Quản lý xem trên bản đồ Leaflet + OSM (trang Tổng quan) và mục "Lịch sử trạng thái" (chi tiết việc). Đã bỏ Traccar (migration 0015). Đặc tả đầy đủ: **`docs/location.md`** – đọc trước khi sửa.
 
 ## 10. Ảnh tải lên – luôn nén trước khi upload
 
@@ -130,7 +130,7 @@ Nhân viên cài Traccar Client gửi vị trí 60 s/lần về Edge Function `t
   - Khối (`Block`/`List`) nằm ngay sau `BlockTitle` giữ lề mặc định của Konsta, không thu lề `my-*` (tiêu đề sẽ bị khối đè lên).
 - Manifest: tên, icon 192/512 + maskable, `display: standalone`, `theme_color`, `start_url: /`.
 - Service worker: precache app shell + asset tĩnh; **không cache response API/Auth của Supabase**. Có thông báo "Có phiên bản mới – Tải lại".
-- Route-based code splitting; Google Maps và trang quản lý chỉ tải khi mở. Có skeleton khi tải và nút "Thử lại" khi lỗi mạng; không để màn hình trắng.
+- Route-based code splitting; bản đồ (Leaflet) và trang quản lý chỉ tải khi mở. Có skeleton khi tải và nút "Thử lại" khi lỗi mạng; không để màn hình trắng.
 
 ## 12. Thời gian
 

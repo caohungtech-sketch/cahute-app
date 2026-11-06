@@ -33,7 +33,7 @@ export default function StaffTasksPage() {
   }
 
   async function change(task: Task, next: TaskStatus) {
-    const err = await updateStatus(task, next)
+    const err = await updateStatus(task, next, { withLocation: true }) // nhân viên: gửi kèm vị trí hiện tại
     if (err) setToast(err)
   }
 
