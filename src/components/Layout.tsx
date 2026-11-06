@@ -24,7 +24,8 @@ export default function Layout() {
   return (
     <KonstaProvider theme="ios" dark>
       <div className="flex min-h-dvh flex-col">
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))]">
+        {/* Lề và vùng tai thỏ do từng trang tự lo (Navbar/Block/List của Konsta) */}
+        <main className="mx-auto w-full max-w-2xl flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))]">
           <Outlet />
         </main>
 

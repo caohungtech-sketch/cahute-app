@@ -17,6 +17,9 @@ const StaffPage = lazy(() => import('./pages/StaffPage'))
 const AccountPage = lazy(() => import('./pages/AccountPage'))
 const ManagerLayout = lazy(() => import('./components/ManagerLayout'))
 const Layout = lazy(() => import('./components/Layout')) // giao diện nhân viên (Konsta UI): quản lý không phải tải
+const StaffTasksPage = lazy(() => import('./staff/StaffTasksPage'))
+const StaffTaskDetailPage = lazy(() => import('./staff/StaffTaskDetailPage'))
+const StaffAccountPage = lazy(() => import('./staff/StaffAccountPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const ComingSoonPage = lazy(() => import('./pages/ComingSoonPage'))
 
@@ -64,15 +67,16 @@ function AppRoutes() {
         {/* Quản lý: sidebar + thanh trên; nhân viên: thanh điều hướng dưới */}
         <Route element={isManager ? <ManagerLayout /> : <Layout />}>
           <Route index element={isManager ? <DashboardPage /> : <Navigate to="/tasks" replace />} />
-          <Route path="tasks" element={<TasksPage />} />
+          {/* Nhân viên: trang riêng kiểu iOS (Konsta UI); quản lý: trang chung như cũ */}
+          <Route path="tasks" element={isManager ? <TasksPage /> : <StaffTasksPage />} />
           {isManager &&
             COMING_SOON.map(([path, title]) => <Route key={path} path={path} element={<ComingSoonPage title={title} />} />)}
           <Route path="tasks/new" element={<TaskFormPage />} />
-          <Route path="tasks/:id" element={<TaskDetailPage />} />
+          <Route path="tasks/:id" element={isManager ? <TaskDetailPage /> : <StaffTaskDetailPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="staff" element={<StaffPage />} />
           <Route path="permissions" element={<Navigate to="/staff" replace />} />
-          <Route path="account" element={<AccountPage />} />
+          <Route path="account" element={isManager ? <AccountPage /> : <StaffAccountPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

@@ -35,6 +35,18 @@ html.dark {
   --foreground: #e6ebf2;
 }
 
+/*
+  Màu chính của Konsta (mặc định xanh dương iOS) → xanh lá như nút chính của dự án,
+  kể cả màu khi bấm giữ (shade) và màu nhạt (tint). Ghi đè biến vì plugin màu của Konsta
+  đọc màu thương hiệu trước khi đọc @theme của dự án.
+*/
+:root {
+  --k-color-primary: #16a34a; /* green-600 */
+  --k-color-ios-primary: #16a34a;
+  --k-color-ios-primary-tint: #22c55e; /* green-500 */
+  --k-color-ios-primary-shade: #15803d; /* green-700 */
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

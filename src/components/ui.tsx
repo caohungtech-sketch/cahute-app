@@ -45,7 +45,16 @@ export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () =
   )
 }
 
-export function Toast({ message, onClose }: { message: string | null; onClose: () => void }) {
+// bottomClass: khoảng cách tới đáy (trang nhân viên có thanh tab iOS cao hơn nên đẩy toast lên cao hơn).
+export function Toast({
+  message,
+  onClose,
+  bottomClass = 'bottom-[calc(5rem+env(safe-area-inset-bottom))]',
+}: {
+  message: string | null
+  onClose: () => void
+  bottomClass?: string
+}) {
   useEffect(() => {
     if (!message) return
     const t = setTimeout(onClose, 4000)
@@ -56,7 +65,7 @@ export function Toast({ message, onClose }: { message: string | null; onClose: (
   return (
     <div
       role="alert"
-      className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-50 rounded-xl bg-gray-900 p-3 text-sm text-white shadow-lg"
+      className={`fixed inset-x-4 ${bottomClass} z-50 rounded-xl bg-gray-900 p-3 text-sm text-white shadow-lg`}
       onClick={onClose}
     >
       {message}
