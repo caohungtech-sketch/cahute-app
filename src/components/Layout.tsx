@@ -32,7 +32,7 @@ export default function Layout() {
         <Tabbar
           labels
           icons
-          className="fixed bottom-0 left-0 z-40"
+          className="fixed bottom-0 left-0 z-30" // dưới bảng chọn/hộp thoại của Konsta (z-40) và toast (z-50)
           // Nền trắng mờ thay cho nền trong suốt mặc định (iOS 26), để chữ phía sau không hiện xuyên qua
           colors={{ bgIos: 'bg-white/90 backdrop-blur-md border-t border-black/10 dark:bg-[#1b2638]/90 dark:border-white/10' }}
           aria-label="Điều hướng chính"
