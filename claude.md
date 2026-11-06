@@ -38,6 +38,10 @@ VS Code (Claude Code) → GitHub (main) → Vercel (tự build & deploy) → Sup
 ```
 
 - **Frontend:** React + TypeScript + Vite + Tailwind CSS, PWA bằng `vite-plugin-pwa` (chiến lược `injectManifest` để tự viết xử lý `push` trong service worker).
+  - Dữ liệu: **TanStack Query** (`src/lib/queryClient.ts`); mọi truy vấn danh sách việc nằm dưới khoá `['tasks']`. Trang mới tải dữ liệu bằng `useQuery`, không tự `useEffect` + `setState`.
+  - Giao diện quản lý: **shadcn/ui** trong `src/components/shadcn/` (màu khai báo trong `src/index.css`); hộp thoại dùng `ResponsiveDialog` (máy tính: Dialog, điện thoại: Drawer).
+  - Giao diện nhân viên: **Konsta UI** kiểu iOS cho mọi máy, chỉ dùng trong `Layout.tsx` và các trang nhân viên (tải riêng, quản lý không tải).
+  - Lint: **Oxlint** (`.oxlintrc.json`), vì typescript-eslint chưa hỗ trợ TypeScript 7.
 - **Backend:** Supabase – Postgres + RLS, Auth, Realtime, Storage, Edge Functions (Deno), `pg_cron`.
 - **Bản đồ:** Google Maps JavaScript API (chỉ tải ở trang bản đồ của quản lý).
 - **Hosting:** Vercel. SPA cần `vercel.json` rewrite mọi đường dẫn về `/index.html`. Mỗi push lên `main` là deploy production; nhánh khác là preview.

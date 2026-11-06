@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* Konsta UI (giao diện nhân viên). Đặt trước khai báo màu bên dưới để --color-primary của dự án được ưu tiên. */
+@import "konsta/react/theme.css";
 
 /* Chế độ tối bật bằng class "dark" trên <html> (xem src/lib/theme.ts) */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -131,6 +133,7 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
+html.dark,
 html.dark body {
   background: #111a2b;
   color: #e6ebf2;
