@@ -50,7 +50,7 @@ export default function StaffTasksPage() {
     <>
       <Navbar title="Việc của tôi" />
 
-      <Block className="!my-3 space-y-3">
+      <Block className="!mb-3 !mt-6 space-y-3">
         <QuickSearch projectId={null} className="" />
         <Segmented strong rounded>
           {STATUSES.map((s) => (

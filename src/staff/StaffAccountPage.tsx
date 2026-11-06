@@ -27,13 +27,13 @@ export default function StaffAccountPage() {
     <>
       <Navbar title="Tài khoản" />
 
-      <List strong inset dividers className="!my-4">
+      <List strong inset dividers className="!mb-4 !mt-6">
         <ListItem title="Email" after={<span className="truncate">{session?.user.email}</span>} />
         <ListItem title="Vai trò" after={profile?.role === 'manager' ? 'Quản lý' : 'Nhân viên'} />
       </List>
 
       <BlockTitle>Họ và tên</BlockTitle>
-      <List strong inset className="!my-2">
+      <List strong inset>
         <ListInput
           type="text"
           placeholder="Nhập họ và tên"

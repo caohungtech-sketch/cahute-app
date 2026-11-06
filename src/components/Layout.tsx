@@ -29,7 +29,14 @@ export default function Layout() {
           <Outlet />
         </main>
 
-        <Tabbar labels icons className="fixed bottom-0 left-0 z-40" aria-label="Điều hướng chính">
+        <Tabbar
+          labels
+          icons
+          className="fixed bottom-0 left-0 z-40"
+          // Nền trắng mờ thay cho nền trong suốt mặc định (iOS 26), để chữ phía sau không hiện xuyên qua
+          colors={{ bgIos: 'bg-white/90 backdrop-blur-md border-t border-black/10 dark:bg-[#1b2638]/90 dark:border-white/10' }}
+          aria-label="Điều hướng chính"
+        >
           {tabs.map(({ to, label, icon: Icon }) => {
             const active = pathname === to || pathname.startsWith(`${to}/`)
             return (

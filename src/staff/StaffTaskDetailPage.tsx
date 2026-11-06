@@ -76,7 +76,7 @@ export default function StaffTaskDetailPage() {
     <>
       <Navbar left={back} title="Chi tiết việc" />
 
-      <Block strong inset className="!my-3 space-y-2">
+      <Block strong inset className="!mb-3 !mt-6 space-y-2">
         <div className="flex items-start gap-2">
           <h1 className="flex-1 break-words text-lg font-semibold leading-snug">{task.title}</h1>
           <StatusBadge status={task.status} />
@@ -95,13 +95,13 @@ export default function StaffTaskDetailPage() {
       </List>
 
       <BlockTitle>Mô tả</BlockTitle>
-      <Block strong inset className="!my-2 whitespace-pre-wrap break-words">
+      <Block strong inset className="whitespace-pre-wrap break-words">
         {task.description || '—'}
       </Block>
 
       <BlockTitle>Kết quả</BlockTitle>
       {isAssignee ? (
-        <List strong inset className="!my-2">
+        <List strong inset>
           <ListInput
             type="textarea"
             placeholder="Ghi kết quả thực hiện…"
@@ -112,7 +112,7 @@ export default function StaffTaskDetailPage() {
           />
         </List>
       ) : (
-        <Block strong inset className="!my-2 whitespace-pre-wrap break-words">
+        <Block strong inset className="whitespace-pre-wrap break-words">
           {task.result || '—'}
         </Block>
       )}
@@ -131,7 +131,7 @@ export default function StaffTaskDetailPage() {
       {options.length > 0 && (
         <>
           <BlockTitle>Cập nhật trạng thái</BlockTitle>
-          <Block className="!my-2 flex gap-2">
+          <Block className="flex gap-2">
             {options.map((s) => (
               <Button key={s} large rounded tonal={s !== 'done'} onClick={() => change(s)}>
                 {actionLabel(task.status, s)}
