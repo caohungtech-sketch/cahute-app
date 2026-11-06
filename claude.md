@@ -121,7 +121,13 @@ Nhân viên cài Traccar Client gửi vị trí 60 s/lần về Edge Function `t
 
 ## 11. PWA & giao diện điện thoại
 
-- Thiết kế mobile-first (từ < 768 px trở lên). Vùng chạm ≥ 48 px, không cuộn ngang trang, tôn trọng `env(safe-area-inset-*)`. Nhân viên dùng thanh điều hướng dưới: Việc của tôi · Chat · Thông báo · Tài khoản.
+- Thiết kế mobile-first (từ < 768 px trở lên), không cuộn ngang trang.
+- **Vùng chạm:** nút hành động chính ≥ 48 px; nút/tab gọn trong danh sách điện thoại ≥ 40 px (mục 6). Với Konsta: nút chính dùng `large` (48 px); **không** dùng nút `small` (28 px) hay cỡ mặc định (34 px) mà không tăng chiều cao (ví dụ `!h-10`).
+- **Vùng tai thỏ/thanh home (`safe-area`):** trang quản lý tự dùng `env(safe-area-inset-*)`; trang nhân viên để Navbar/Tabbar của Konsta tự xử lý, **không** thêm `env()` lần nữa.
+- Nhân viên dùng thanh điều hướng dưới: Công việc · Chat · Thông báo · Tài khoản (hiện mới có Công việc · Tài khoản).
+- **Konsta – tránh lỗi đã gặp:**
+  - Thứ tự lớp: thanh tab `z-30` < bảng chọn/hộp thoại/popup của Konsta `z-40` < toast `z-50`. Không đặt thanh tab ngang hoặc cao hơn `z-40` (sẽ che nút Huỷ và lớp nền tối).
+  - Khối (`Block`/`List`) nằm ngay sau `BlockTitle` giữ lề mặc định của Konsta, không thu lề `my-*` (tiêu đề sẽ bị khối đè lên).
 - Manifest: tên, icon 192/512 + maskable, `display: standalone`, `theme_color`, `start_url: /`.
 - Service worker: precache app shell + asset tĩnh; **không cache response API/Auth của Supabase**. Có thông báo "Có phiên bản mới – Tải lại".
 - Route-based code splitting; Google Maps và trang quản lý chỉ tải khi mở. Có skeleton khi tải và nút "Thử lại" khi lỗi mạng; không để màn hình trắng.
