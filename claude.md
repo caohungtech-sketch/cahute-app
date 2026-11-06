@@ -22,7 +22,7 @@ VS Code (Claude Code) → GitHub (main) → Vercel (tự build & deploy) → Sup
   - Giao diện nhân viên: **Konsta UI** kiểu iOS cho mọi máy, chỉ dùng trong `Layout.tsx` và `src/staff/` (tải riêng, quản lý không tải). Nhân viên có trang riêng cho Việc, Chi tiết việc, Tài khoản (`App.tsx` chọn theo vai trò); logic dữ liệu dùng chung trong `features/`.
   - Lint: **Oxlint** (`.oxlintrc.json`), vì typescript-eslint chưa hỗ trợ TypeScript 7.
 - **Backend:** Supabase – Postgres + RLS, Auth, Realtime, Storage, Edge Functions (Deno), `pg_cron`.
-- **Bản đồ:** Leaflet + dữ liệu OpenStreetMap, ô bản đồ từ CARTO (miễn phí, không cần API key; chỉ tải ở trang Tổng quan của quản lý). **Không dùng tên miền `openstreetmap.org`**: DNS của VNPT không phân giải được (xem `docs/location.md`).
+- **Bản đồ:** Leaflet + dữ liệu OpenStreetMap, ô bản đồ từ OpenStreetMap France (miễn phí, không cần API key; chỉ tải ở trang Tổng quan của quản lý). **Không dùng `openstreetmap.org` (VNPT chặn DNS) hay CARTO (cần API key)** – xem `docs/location.md`.
 - **Hosting:** Vercel. SPA cần `vercel.json` rewrite mọi đường dẫn về `/index.html`. Mỗi push lên `main` là deploy production; nhánh khác là preview.
 
 Cấu trúc thư mục:

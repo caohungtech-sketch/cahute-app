@@ -17,12 +17,13 @@ export interface StaffPoint {
 
 const DEFAULT_CENTER: L.LatLngTuple = [16.0544, 108.2022] // Việt Nam (Đà Nẵng)
 
-// Ô bản đồ: dữ liệu OpenStreetMap do CARTO vẽ (kiểu Voyager). Không dùng tile.openstreetmap.org vì
-// DNS của một số nhà mạng VN (VNPT) không phân giải được tên miền openstreetmap.org.
+// Ô bản đồ: máy chủ cộng đồng OpenStreetMap France (dữ liệu OSM, có nhãn tiếng Việt).
+// - Không dùng tile.openstreetmap.org: DNS của VNPT không phân giải được tên miền openstreetmap.org.
+// - Không dùng CARTO: giờ cần API key, không có key thì trả ô "API KEY REQUIRED".
 // Phải giữ dòng ghi nguồn; chỉ hợp lượng truy cập nhỏ.
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+const TILE_URL = 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png'
 const ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://www.openstreetmap.fr/">OpenStreetMap France</a>'
 
 export default function StaffMap({ points }: { points: StaffPoint[] }) {
   const elRef = useRef<HTMLDivElement>(null)
@@ -33,7 +34,7 @@ export default function StaffMap({ points }: { points: StaffPoint[] }) {
   useEffect(() => {
     if (!elRef.current) return
     const map = L.map(elRef.current, { center: DEFAULT_CENTER, zoom: 6 })
-    L.tileLayer(TILE_URL, { maxZoom: 20, subdomains: 'abcd', attribution: ATTRIBUTION }).addTo(map)
+    L.tileLayer(TILE_URL, { maxZoom: 19, subdomains: 'abc', attribution: ATTRIBUTION }).addTo(map)
     mapRef.current = map
     const markers = markersRef.current
     return () => {

@@ -21,5 +21,8 @@
 ## Hiển thị (chỉ quản lý)
 
 - **Bản đồ trang Tổng quan** (`features/map/StaffMap.tsx`): **Leaflet + OpenStreetMap**, không cần API key; tải riêng khi mở trang. Chấm xanh = có vị trí trong 2 giờ qua, xám = cũ hơn. Bọc `isolate` để các lớp z-index của Leaflet không đè thanh trên.
-- Ô bản đồ: dữ liệu OpenStreetMap do **CARTO** vẽ (`basemaps.cartocdn.com`, kiểu Voyager); phải giữ dòng ghi nguồn "© OpenStreetMap © CARTO"; chỉ hợp lượng truy cập nhỏ. **Không dùng `tile.openstreetmap.org`/`openstreetmap.org`**: DNS của VNPT (và có thể nhà mạng VN khác) không phân giải được các tên miền này (đã kiểm tra 06/11/2026) → bản đồ chỉ còn ô xám. Khi đổi nguồn ô bản đồ, thử tải một ô trên mạng VN trước.
+- Ô bản đồ: máy chủ cộng đồng **OpenStreetMap France** (`{a,b,c}.tile.openstreetmap.fr/osmfr`, có nhãn tiếng Việt); phải giữ dòng ghi nguồn; chỉ hợp lượng truy cập nhỏ. Đã loại (kiểm tra 06/11/2026):
+  - `tile.openstreetmap.org`/`openstreetmap.org`: DNS của VNPT (và có thể nhà mạng VN khác) không phân giải được → bản đồ chỉ còn ô xám.
+  - CARTO (`basemaps.cartocdn.com`): giờ cần API key → trả ô "API KEY REQUIRED" (vẫn trả HTTP 200).
+  - Khi đổi nguồn ô bản đồ: tải thử một ô **trên mạng VN, kèm Referer của app**, và **mở ảnh ra xem** (mã 200 chưa đủ).
 - **Lịch sử trạng thái** trong trang chi tiết việc của quản lý (`features/tasks/StatusHistory.tsx`): thời gian, người đổi, từ → sang, link "Xem vị trí" mở **Google Maps** (`google.com/maps?q=lat,lon`, không cần API key; điện thoại tự mở app Google Maps).
