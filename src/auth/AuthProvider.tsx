@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
-import { clearProfilesCache } from '../lib/profiles'
+import { queryClient } from '../lib/queryClient'
 import type { Profile, Project } from '../lib/types'
 
 interface AuthState {
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
-    clearProfilesCache()
+    queryClient.clear() // xoá dữ liệu đệm của người vừa đăng xuất
   }, [])
 
   // Khi tải xong mà profile vẫn null (lỗi mạng…) App sẽ hiện nút "Thử lại".

@@ -1,42 +1,34 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { supabase } from './supabase'
 import type { Profile } from './types'
 
-// Danh sách người dùng (dùng để hiện tên). Cache trong phiên, tải lại khi cần.
-let cache: Promise<Profile[]> | null = null
+const EMPTY: Profile[] = []
 
-export function loadProfiles(force = false): Promise<Profile[]> {
-  if (!cache || force) {
-    cache = Promise.resolve(
-      supabase.from('profiles').select('id, full_name, role, avatar_path, deleted_at').order('full_name').limit(1000),
-    ).then(({ data, error }) => {
-      if (error) {
-        cache = null
-        throw error
-      }
-      return data as Profile[]
-    })
-  }
-  return cache
-}
-
-export function clearProfilesCache() {
-  cache = null
-}
-
+// Danh sách người dùng (dùng để hiện tên). Ít thay đổi nên giữ trong bộ nhớ đệm 5 phút, tải lại khi cần.
 export function useProfiles() {
-  const [list, setList] = useState<Profile[]>([])
-
-  useEffect(() => {
-    loadProfiles().then(setList).catch(() => {})
-  }, [])
+  const { data: list = EMPTY, refetch } = useQuery({
+    queryKey: ['profiles'],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, role, avatar_path, deleted_at')
+        .order('full_name')
+        .limit(1000)
+      if (error) throw error
+      return data as Profile[]
+    },
+  })
 
   const byId = useMemo(() => new Map(list.map((p) => [p.id, p])), [list])
 
   return {
     list,
     byId,
-    reload: async () => setList(await loadProfiles(true)),
+    reload: async () => {
+      await refetch()
+    },
   }
 }
 

@@ -1,25 +1,29 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { supabase } from './supabase'
+
+const EMPTY: Record<string, string[]> = {}
 
 // user_id theo từng dự án, đọc từ project_members hoặc project_managers.
 function useProjectUsers(table: 'project_members' | 'project_managers', projectIds: string[]) {
-  const [users, setUsers] = useState<Record<string, string[]>>({})
-  const key = projectIds.join(',')
+  const ids = [...projectIds].sort()
+  const { data: users = EMPTY, refetch } = useQuery({
+    queryKey: [table, ids],
+    enabled: ids.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from(table).select('project_id, user_id').in('project_id', ids)
+      if (error) throw error
+      const map: Record<string, string[]> = Object.fromEntries(ids.map((id) => [id, []]))
+      for (const r of data) map[r.project_id].push(r.user_id)
+      return map
+    },
+  })
 
-  const reload = useCallback(async () => {
-    const ids = key ? key.split(',') : []
-    if (!ids.length) return setUsers({})
-    const { data } = await supabase.from(table).select('project_id, user_id').in('project_id', ids)
-    const map: Record<string, string[]> = Object.fromEntries(ids.map((id) => [id, []]))
-    for (const r of data ?? []) map[r.project_id].push(r.user_id)
-    setUsers(map)
-  }, [table, key])
-
-  useEffect(() => {
-    reload()
-  }, [reload])
-
-  return { users, reload }
+  return {
+    users: ids.length ? users : EMPTY,
+    reload: async () => {
+      if (ids.length) await refetch()
+    },
+  }
 }
 
 // Thành viên (nhân viên) của các dự án. RLS: quản lý thấy thành viên dự án mình.
