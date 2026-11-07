@@ -67,6 +67,15 @@ export function fromLocalInput(value: string): string | null {
   return value ? new Date(`${value}:00+07:00`).toISOString() : null
 }
 
+const ymdFmt = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' })
+
+// 00:00 giờ VN của ngày 'YYYY-MM-DD' (mặc định hôm nay), cộng thêm addDays ngày. VN không có giờ mùa hè.
+export function vnStartOfDay(ymd?: string, addDays = 0): Date {
+  const d = new Date(`${ymd || ymdFmt.format(new Date())}T00:00:00+07:00`)
+  d.setUTCDate(d.getUTCDate() + addDays)
+  return d
+}
+
 // Cột kiểu date ('YYYY-MM-DD', không có giờ) → "05/11/2026". Không đổi múi giờ.
 export function formatDateOnly(value: string | null): string {
   if (!value) return ''
