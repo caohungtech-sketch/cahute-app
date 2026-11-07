@@ -49,8 +49,5 @@ export interface TaskComment {
 export interface StaffDetails {
   user_id: string
   phone: string
-  id_number: string
-  id_issued_on: string | null // 'YYYY-MM-DD'
-  id_issued_place: string
   hired_on: string | null // 'YYYY-MM-DD'
 }

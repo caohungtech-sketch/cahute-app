@@ -13,9 +13,6 @@ type Link = { project_id: string; user_id: string }
 
 const EMPTY_DETAILS: Omit<StaffDetails, 'user_id'> = {
   phone: '',
-  id_number: '',
-  id_issued_on: null,
-  id_issued_place: '',
   hired_on: null,
 }
 
@@ -38,7 +35,7 @@ export default function StaffPage() {
   const load = useCallback(async () => {
     setError(null)
     const [d, m, pm, p] = await Promise.all([
-      supabase.from('staff_details').select('user_id, phone, id_number, id_issued_on, id_issued_place, hired_on'),
+      supabase.from('staff_details').select('user_id, phone, hired_on'),
       supabase.from('project_members').select('project_id, user_id'),
       supabase.from('project_managers').select('project_id, user_id'),
       supabase.from('projects').select('id, name').order('name'),
@@ -180,14 +177,11 @@ export default function StaffPage() {
         <>
           {/* Desktop: bảng */}
           <section className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 md:block">
-            <table className="w-full min-w-[1100px] text-left text-sm">
+            <table className="w-full min-w-[800px] text-left text-sm">
               <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-4 py-3 font-medium">Họ tên</th>
                   <th className="px-3 py-3 font-medium">Số điện thoại</th>
-                  <th className="px-3 py-3 font-medium">CCCD</th>
-                  <th className="px-3 py-3 font-medium">Ngày cấp</th>
-                  <th className="px-3 py-3 font-medium">Nơi cấp</th>
                   <th className="px-3 py-3 font-medium">Ngày vào làm</th>
                   <th className="px-3 py-3 font-medium">Vai trò</th>
                   <th className="px-3 py-3 font-medium">Dự án</th>
@@ -201,9 +195,6 @@ export default function StaffPage() {
                     <tr key={p.id} className="align-top hover:bg-gray-50">
                       <td className="whitespace-nowrap px-4 py-3">{nameButton(p)}</td>
                       <td className="whitespace-nowrap px-3 py-3 tabular-nums">{d?.phone}</td>
-                      <td className="whitespace-nowrap px-3 py-3 tabular-nums">{d?.id_number}</td>
-                      <td className="whitespace-nowrap px-3 py-3 tabular-nums">{formatDateOnly(d?.id_issued_on ?? null)}</td>
-                      <td className="px-3 py-3">{d?.id_issued_place}</td>
                       <td className="whitespace-nowrap px-3 py-3 tabular-nums">{formatDateOnly(d?.hired_on ?? null)}</td>
                       <td className="px-3 py-3">
                         {roleCell(p)}
@@ -227,9 +218,6 @@ export default function StaffPage() {
               const d = details.get(p.id)
               const rows: [string, string][] = [
                 ['SĐT', d?.phone ?? ''],
-                ['CCCD', d?.id_number ?? ''],
-                ['Ngày cấp', formatDateOnly(d?.id_issued_on ?? null)],
-                ['Nơi cấp', d?.id_issued_place ?? ''],
                 ['Ngày vào làm', formatDateOnly(d?.hired_on ?? null)],
               ]
               return (
@@ -313,9 +301,6 @@ function EditDialog({
     const { error } = await supabase.from('staff_details').upsert({
       user_id: person.id,
       phone: form.phone.trim(),
-      id_number: form.id_number.trim(),
-      id_issued_on: form.id_issued_on || null,
-      id_issued_place: form.id_issued_place.trim(),
       hired_on: form.hired_on || null,
     })
     setBusy(false)
@@ -340,24 +325,6 @@ function EditDialog({
           <label>
             <span className={label}>Ngày vào làm</span>
             <input className={inputCls} type="date" value={form.hired_on ?? ''} onChange={set('hired_on')} />
-          </label>
-          <label>
-            <span className={label}>Số CCCD</span>
-            <input className={inputCls} inputMode="numeric" maxLength={20} value={form.id_number} onChange={set('id_number')} />
-          </label>
-          <label>
-            <span className={label}>Ngày cấp</span>
-            <input className={inputCls} type="date" value={form.id_issued_on ?? ''} onChange={set('id_issued_on')} />
-          </label>
-          <label className="sm:col-span-2">
-            <span className={label}>Nơi cấp</span>
-            <input
-              className={inputCls}
-              maxLength={200}
-              placeholder="Ví dụ: Cục Cảnh sát QLHC về TTXH"
-              value={form.id_issued_place}
-              onChange={set('id_issued_place')}
-            />
           </label>
         </div>
 

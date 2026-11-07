@@ -22,7 +22,8 @@ Cahute hiện được thiết kế cho **một công ty duy nhất**:
 | Danh sách người dùng (`useProfiles`) tải **mọi người dùng** | Công ty A thấy tên nhân viên công ty B |
 | Dự án, việc, chat, vị trí không gắn với công ty nào | Không có ranh giới dữ liệu giữa khách hàng |
 | Dùng dịch vụ miễn phí: Supabase Free, ô bản đồ OpenStreetMap France (máy chủ cộng đồng) | Không có cam kết hoạt động; Supabase Free có thể tạm dừng project khi lâu không dùng |
-| Lưu số CCCD và vị trí nhân viên | Dữ liệu cá nhân nhạy cảm, có yêu cầu pháp lý |
+| Lưu số CCCD và vị trí nhân viên | Dữ liệu cá nhân nhạy cảm, có yêu cầu pháp lý (đã quyết định bỏ CCCD, xem 3.3) |
+| Quản lý nào cũng nâng/hạ quyền và xem hồ sơ mọi nhân viên | Không có cấp chủ doanh nghiệp; sau này quản lý sẽ xem được doanh thu toàn công ty |
 
 **Phần dùng lại được gần hết:** React + TypeScript + Vite, Supabase (Postgres + RLS, Auth, Realtime, Storage), TanStack Query, shadcn/ui (quản lý), Konsta UI (nhân viên), luật trạng thái việc, lịch sử trạng thái kèm vị trí, nén ảnh. Phần phải làm lại chủ yếu là **lớp phân quyền** (mục 5 của CLAUDE.md).
 
@@ -43,7 +44,31 @@ Chọn mô hình **dùng chung database, mỗi dòng dữ liệu gắn mã công
 - Luật "giữ ít nhất 1 quản lý" và "không tự hạ quyền mình" áp dụng **trong từng công ty**.
 - Dữ liệu hiện có chuyển sang **công ty đầu tiên** bằng migration.
 
-### 3.3. Nguyên tắc bắt buộc
+### 3.3. Phân quyền 3 cấp trong công ty (đã chốt 07/11/2026)
+
+Vai trò lưu ở `organization_members.role`: `owner` (Chủ doanh nghiệp) | `manager` (Quản lý) | `staff` (Nhân viên). Lý do có cấp `owner`: khi có tính năng doanh thu, quản lý không được xem dữ liệu của toàn công ty.
+
+| Dữ liệu / thao tác | Chủ doanh nghiệp | Quản lý | Nhân viên |
+|---|---|---|---|
+| Thông tin công ty, gói cước, thanh toán | ✅ | ❌ | ❌ |
+| Nâng/hạ quyền, khoá tài khoản | ✅ mọi người | ❌ | ❌ |
+| Mời người vào công ty | ✅ mọi vai trò | ✅ chỉ mời `staff` | ❌ |
+| Tạo dự án | ✅ | ✅ (người tạo tự là quản lý dự án) | ❌ |
+| Xoá dự án, chỉ định quản lý dự án | ✅ mọi dự án | Dự án mình phụ trách | ❌ |
+| Công việc, bình luận, lịch sử trạng thái | ✅ toàn công ty | Dự án mình phụ trách | Việc được giao |
+| Vị trí nhân viên | ✅ toàn công ty | Nhân viên trong dự án mình | Chỉ của mình |
+| Danh bạ nhân viên (tên, SĐT, ngày vào làm) | ✅ | ✅ toàn công ty, để thêm người vào dự án | Chỉ của mình |
+| **Doanh thu** (tương lai) | ✅ toàn công ty | **Dự án mình phụ trách** | ❌ |
+| Nhật ký thao tác nhạy cảm | ✅ | ❌ | ❌ |
+
+Quy tắc:
+- **Doanh thu gắn theo dự án** (`project_id`), nên RLS dùng chung cách kiểm tra "quản lý dự án" như công việc.
+- **Một công ty có thể có nhiều owner**, quyền ngang nhau. Người tạo công ty tự động là owner. Chỉ owner mới phong người khác làm owner hoặc quản lý.
+- Công ty luôn còn **ít nhất 1 owner**; owner không tự hạ quyền mình (trigger, giống `profiles_guard` hiện nay).
+- Hạ quyền một quản lý thì các dự án họ đang phụ trách được chuyển cho người thực hiện (giữ luật hiện tại).
+- **Không lưu CCCD**: đã bỏ các cột `id_number`, `id_issued_on`, `id_issued_place` khỏi `staff_details` và khỏi trang Nhân viên (migration 0017).
+
+### 3.4. Nguyên tắc bắt buộc
 
 - **Mọi bảng mới phải có RLS lọc theo công ty ngay trong migration tạo bảng** (giữ quy tắc hiện tại của CLAUDE.md).
 - **Test tự động cho RLS** (ví dụ pgTAP): với mỗi bảng, chứng minh người của công ty A **không đọc/sửa được** dữ liệu công ty B. Chạy test này trước mỗi lần deploy.
@@ -95,14 +120,13 @@ Chọn mô hình **dùng chung database, mỗi dòng dữ liệu gắn mã công
 
 ## 5. Pháp lý và dữ liệu cá nhân
 
-Cahute lưu **số CCCD**, **vị trí** và thông tin nhân sự của nhân viên khách hàng. Theo hiểu biết hiện tại, việc này chịu sự điều chỉnh của **Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân** và có thể các văn bản mới hơn. Các việc dự kiến cần làm (**phải xác nhận với luật sư**):
+Cahute lưu **vị trí** và thông tin nhân sự của nhân viên khách hàng (số CCCD sẽ bỏ, xem 3.3). Theo hiểu biết hiện tại, việc này chịu sự điều chỉnh của **Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân** và có thể các văn bản mới hơn. Các việc dự kiến cần làm (**phải xác nhận với luật sư**):
 
 - Chính sách quyền riêng tư và điều khoản sử dụng.
 - Hợp đồng xử lý dữ liệu giữa Cahute và công ty khách hàng (ai là bên kiểm soát, ai là bên xử lý dữ liệu).
 - Cơ chế ghi nhận sự đồng ý của nhân viên khi lấy vị trí; cho nhân viên biết khi nào vị trí được ghi.
 - Kiểm tra yêu cầu về **nơi lưu trữ dữ liệu** (trong hay ngoài Việt Nam) đối với loại dịch vụ này; chọn vùng máy chủ Supabase phù hợp.
 - Thời hạn lưu trữ: vị trí đã tự xoá sau 30 ngày; cần quy định tương tự cho dữ liệu khác và cho công ty đã ngừng dùng.
-- Cân nhắc **mã hoá hoặc hạn chế hiển thị** số CCCD.
 
 ## 6. Bảo mật
 
@@ -125,7 +149,7 @@ Cahute lưu **số CCCD**, **vị trí** và thông tin nhân sự của nhân v
 ## 8. Quyết định cần chốt trước khi làm Giai đoạn 1
 
 1. Một người có được thuộc **nhiều công ty** không (ví dụ thợ làm cho nhiều bên)? Đề xuất: **có**.
-2. Vai trò trong công ty: `owner` (chủ, thanh toán) / `manager` / `staff`, hay thêm vai trò khác?
+2. ~~Vai trò trong công ty~~ → **Đã chốt:** `owner` / `manager` / `staff`, xem 3.3.
 3. Công ty mới tự đăng ký hay phải qua bạn duyệt?
 4. Mỗi công ty có tên miền con riêng (`congtyA.cahute.vn`) hay dùng chung một địa chỉ?
 5. Vùng máy chủ Supabase (phụ thuộc kết quả tư vấn pháp lý về nơi lưu trữ dữ liệu).
