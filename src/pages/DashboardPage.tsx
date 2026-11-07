@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
-import { AlarmClock, CircleCheck, ListTodo, Plus, Timer } from 'lucide-react'
+import { AlarmClock, CircleCheck, ListTodo, Maximize2, Plus, Timer, X } from 'lucide-react'
 import { useAuth } from '../auth/AuthProvider'
 import { ErrorBox, StatusBadge } from '../components/ui'
 import type { StaffPoint } from '../features/map/StaffMap'
@@ -13,6 +13,45 @@ import type { TaskStatus } from '../lib/types'
 
 // Bản đồ (Leaflet + OpenStreetMap) chỉ tải khi mở trang này.
 const StaffMap = lazy(() => import('../features/map/StaffMap'))
+
+// Bản đồ phủ toàn màn hình trong app (không dùng Fullscreen API vì Safari trên iPhone không hỗ trợ;
+// không dùng ResponsiveDialog vì vuốt đóng Drawer tranh thao tác kéo bản đồ). Esc hoặc × để đóng.
+// Nhận cùng `points` với bản đồ nhỏ nên vẫn cập nhật vị trí theo Realtime.
+function FullscreenMap({ points, onClose }: { points: StaffPoint[]; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', onKey)
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden' // khoá cuộn trang phía sau
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = overflow
+    }
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-white" role="dialog" aria-modal="true" aria-label="Bản đồ vị trí nhân viên">
+      <div className="flex min-h-14 shrink-0 items-center gap-2 border-b border-gray-200 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] pt-[env(safe-area-inset-top)]">
+        <h2 className="flex-1 truncate font-semibold">Vị trí nhân viên</h2>
+        <span className="text-sm text-gray-500">{points.length} người</span>
+        <button
+          className="grid h-11 w-11 place-items-center rounded-lg text-gray-600 hover:bg-gray-100"
+          onClick={onClose}
+          aria-label="Đóng bản đồ toàn màn hình"
+          title="Đóng (Esc)"
+          autoFocus
+        >
+          <X className="h-6 w-6" aria-hidden />
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 bg-gray-100 pb-[env(safe-area-inset-bottom)]">
+        <Suspense fallback={<div className="h-full animate-pulse bg-gray-100" />}>
+          <StaffMap points={points} />
+        </Suspense>
+      </div>
+    </div>
+  )
+}
 
 const RECENT_MS = 2 * 60 * 60 * 1000 // vị trí gửi kèm khi đổi trạng thái việc → trong 2 giờ qua coi là "mới"
 const DONE_DAYS = 7
@@ -105,6 +144,8 @@ export default function DashboardPage() {
   const [locs, setLocs] = useState<LastLoc[]>([])
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(() => Date.now())
+  const [mapFull, setMapFull] = useState(false)
+  const closeMap = useCallback(() => setMapFull(false), [])
 
   const load = useCallback(async () => {
     setError(null)
@@ -240,11 +281,20 @@ export default function DashboardPage() {
             </span>
           }
         >
-          <div className="h-72 overflow-hidden rounded-xl bg-gray-100 md:h-96">
+          <div className="relative h-72 overflow-hidden rounded-xl bg-gray-100 md:h-96">
             <Suspense fallback={<div className="h-full animate-pulse bg-gray-100" />}>
               <StaffMap points={points} />
             </Suspense>
+            <button
+              className="absolute right-2 top-2 z-10 grid h-11 w-11 place-items-center rounded-lg bg-white text-gray-700 shadow-md ring-1 ring-black/10 hover:bg-gray-50"
+              onClick={() => setMapFull(true)}
+              aria-label="Phóng to bản đồ toàn màn hình"
+              title="Phóng to"
+            >
+              <Maximize2 className="h-5 w-5" aria-hidden />
+            </button>
           </div>
+          {mapFull && <FullscreenMap points={points} onClose={closeMap} />}
           {points.length === 0 ? (
             <p className="mt-3 text-sm text-gray-500">Chưa có vị trí nào. Vị trí được ghi khi nhân viên đổi trạng thái việc trên điện thoại (cần cho phép dùng vị trí).</p>
           ) : (
