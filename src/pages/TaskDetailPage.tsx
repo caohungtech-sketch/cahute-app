@@ -27,7 +27,7 @@ const toDraft = (t: Task): Draft => ({
 })
 
 const textareaCls =
-  'block w-full resize-y rounded-xl border border-gray-300 bg-white p-3 text-base focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200'
+  'block w-full resize-y rounded-xl border border-gray-300 bg-white p-3 text-base focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-200'
 
 export default function TaskDetailPage() {
   const { id = '' } = useParams()
@@ -129,7 +129,7 @@ export default function TaskDetailPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <Link to="/tasks" className="mb-3 inline-flex min-h-12 items-center text-sm text-blue-700">
+      <Link to="/tasks" className="mb-3 inline-flex min-h-12 items-center text-sm text-indigo-700">
         ← Công việc
       </Link>
 
@@ -137,7 +137,7 @@ export default function TaskDetailPage() {
         <div className="flex items-start gap-2">
           {isManager ? (
             <input
-              className="min-h-12 w-full min-w-0 flex-1 rounded-lg border border-transparent px-2 text-xl font-bold hover:border-gray-300 focus:border-blue-600 focus:outline-none"
+              className="min-h-12 w-full min-w-0 flex-1 rounded-lg border border-transparent px-2 text-xl font-bold hover:border-gray-300 focus:border-indigo-600 focus:outline-none"
               aria-label="Tiêu đề"
               maxLength={200}
               value={draft.title}

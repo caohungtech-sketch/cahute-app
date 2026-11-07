@@ -4,7 +4,7 @@ import type { TaskStatus } from '../lib/types'
 
 export const btn = {
   primary:
-    'inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 font-semibold text-white active:bg-blue-800 disabled:opacity-50',
+    'inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 font-semibold text-white active:bg-green-700 disabled:opacity-50',
   secondary:
     'inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-4 font-medium text-gray-800 ring-1 ring-gray-300 active:bg-gray-100 disabled:opacity-50',
   danger:
@@ -12,7 +12,7 @@ export const btn = {
 }
 
 export const inputCls =
-  'block w-full min-h-12 rounded-xl border border-gray-300 bg-white px-3 text-base focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200'
+  'block w-full min-h-12 rounded-xl border border-gray-300 bg-white px-3 text-base focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-200'
 
 export function StatusBadge({ status }: { status: TaskStatus }) {
   return (

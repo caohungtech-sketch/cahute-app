@@ -59,7 +59,7 @@ export default function TasksPage() {
         {isManager && managedProjects.length > 0 && (
           <Link
             to={projectId ? `/tasks/new?project=${projectId}` : '/tasks/new'}
-            className="inline-flex min-h-10 items-center rounded-xl bg-blue-700 px-3 text-sm font-semibold text-white active:bg-blue-800 md:min-h-12 md:px-4 md:text-base"
+            className="inline-flex min-h-10 items-center rounded-xl bg-green-600 px-3 text-sm font-semibold text-white hover:bg-green-700 active:bg-green-700 md:min-h-12 md:px-4 md:text-base"
           >
             + Tạo việc
           </Link>
@@ -100,7 +100,7 @@ export default function TasksPage() {
       )}
 
       {isManager && managedProjects.length === 0 && (
-        <div className="mb-3 rounded-xl bg-blue-50 p-4 text-sm text-blue-900 ring-1 ring-blue-200">
+        <div className="mb-3 rounded-xl bg-indigo-50 p-4 text-sm text-indigo-900 ring-1 ring-indigo-200">
           Bạn chưa quản lý dự án nào. Vào{' '}
           <Link to="/projects" className="font-semibold underline">
             Dự án

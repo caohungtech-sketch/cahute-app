@@ -15,7 +15,7 @@ export default function UpdatePrompt() {
       <button className="min-h-12 rounded-lg px-3 text-sm text-gray-300" onClick={() => setNeedRefresh(false)}>
         Để sau
       </button>
-      <button className="min-h-12 rounded-lg bg-blue-600 px-4 text-sm font-semibold" onClick={() => updateServiceWorker()}>
+      <button className="min-h-12 rounded-lg bg-green-600 px-4 text-sm font-semibold" onClick={() => updateServiceWorker()}>
         Tải lại
       </button>
     </div>

@@ -68,7 +68,7 @@ export default function TaskFormPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <Link to="/tasks" className="mb-3 inline-flex min-h-12 items-center text-sm text-blue-700">
+      <Link to="/tasks" className="mb-3 inline-flex min-h-12 items-center text-sm text-indigo-700">
         ← Quay lại
       </Link>
       <h1 className="mb-4 text-xl font-bold">Tạo công việc</h1>
@@ -82,7 +82,7 @@ export default function TaskFormPage() {
         <label className="block">
           <span className="mb-1 block text-sm font-medium">Mô tả</span>
           <textarea
-            className="block w-full resize-y rounded-xl border border-gray-300 bg-white p-3 text-base focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="block w-full resize-y rounded-xl border border-gray-300 bg-white p-3 text-base focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-200"
             rows={3}
             maxLength={10000}
             value={description}
@@ -120,7 +120,7 @@ export default function TaskFormPage() {
           {memberIds.length === 0 ? (
             <p className="text-sm text-gray-500">
               Dự án chưa có thành viên.{' '}
-              <Link to="/projects" className="text-blue-700 underline">
+              <Link to="/projects" className="text-indigo-700 underline">
                 Thêm nhân viên
               </Link>
             </p>
@@ -134,7 +134,7 @@ export default function TaskFormPage() {
                     type="button"
                     aria-pressed={on}
                     className={`min-h-10 rounded-full px-3 text-sm ring-1 ${
-                      on ? 'bg-blue-700 text-white ring-blue-700' : 'bg-white text-gray-700 ring-gray-300'
+                      on ? 'bg-indigo-700 text-white ring-indigo-700' : 'bg-white text-gray-700 ring-gray-300'
                     }`}
                     onClick={() => toggle(id)}
                   >

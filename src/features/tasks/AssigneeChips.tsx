@@ -35,11 +35,11 @@ export default function AssigneeChips({ task, canEdit, profilesById, onChanged, 
       {assigned.length === 0 && !canEdit && <span className="text-gray-500">Chưa giao cho ai</span>}
 
       {assigned.map((uid) => (
-        <span key={uid} className="inline-flex min-h-9 items-center rounded-full bg-blue-50 pl-3 text-sm text-blue-900 ring-1 ring-blue-200">
+        <span key={uid} className="inline-flex min-h-9 items-center rounded-full bg-indigo-50 pl-3 text-sm text-indigo-900 ring-1 ring-indigo-200">
           {displayName(profilesById.get(uid))}
           {canEdit ? (
             <button
-              className="flex h-9 w-9 items-center justify-center rounded-full text-blue-700 active:bg-blue-100"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-indigo-700 active:bg-indigo-100"
               aria-label={`Gỡ ${displayName(profilesById.get(uid))}`}
               onClick={() => remove(uid)}
             >

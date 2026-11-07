@@ -38,7 +38,7 @@ function AppRoutes() {
   if (loading)
     return (
       <FullScreenMessage>
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-200 border-t-blue-700" aria-label="Đang tải" />
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-700" aria-label="Đang tải" />
       </FullScreenMessage>
     )
 

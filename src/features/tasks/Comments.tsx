@@ -121,7 +121,7 @@ export default function Comments({ taskId, userId, profilesById }: Props) {
 
   function renderComment(c: TaskComment, isReply: boolean) {
     return (
-      <div className={isReply ? 'border-l-2 border-blue-200 pl-3' : ''}>
+      <div className={isReply ? 'border-l-2 border-indigo-200 pl-3' : ''}>
         <p className="text-xs text-gray-500">
           <span className="font-semibold text-gray-800">{displayName(profilesById.get(c.author_id ?? ''))}</span> ·{' '}
           {formatDateTime(c.created_at)}
@@ -185,7 +185,7 @@ export default function Comments({ taskId, userId, profilesById }: Props) {
                   onCancel={() => setReplyTo(null)}
                 />
               ) : (
-                <button className="mt-1 min-h-12 text-sm font-medium text-blue-700" onClick={() => setReplyTo(c.id)}>
+                <button className="mt-1 min-h-12 text-sm font-medium text-indigo-700" onClick={() => setReplyTo(c.id)}>
                   ↩ Trả lời{list.length > 0 && ` (${list.length})`}
                 </button>
               )}

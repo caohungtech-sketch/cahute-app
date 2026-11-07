@@ -81,7 +81,7 @@ export default function QuickSearch({ projectId, className = 'mb-2' }: { project
         aria-autocomplete="list"
         aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
         // text-base (16px): nhỏ hơn thì iOS Safari tự phóng to trang khi chạm vào ô
-        className="block min-h-10 w-full appearance-none rounded-xl border border-gray-300 bg-white pl-9 pr-3 text-base focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200"
+        className="block min-h-10 w-full appearance-none rounded-xl border border-gray-300 bg-white pl-9 pr-3 text-base focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-200"
         placeholder="Tìm nhanh công việc…"
         value={q}
         onChange={(e) => {
@@ -107,7 +107,7 @@ export default function QuickSearch({ projectId, className = 'mb-2' }: { project
               id={`${listId}-${i}`}
               role="option"
               aria-selected={i === active}
-              className={`flex min-h-11 cursor-pointer items-center gap-2 px-3 text-sm ${i === active ? 'bg-blue-50' : 'active:bg-gray-100'}`}
+              className={`flex min-h-11 cursor-pointer items-center gap-2 px-3 text-sm ${i === active ? 'bg-indigo-50' : 'active:bg-gray-100'}`}
               onMouseDown={(e) => e.preventDefault()} // giữ focus để onBlur không đóng trước khi chọn
               onClick={() => go(h)}
             >

@@ -81,7 +81,7 @@ export default function CommentForm({ taskId, userId, parentId, placeholder, aut
   return (
     <form onSubmit={onSubmit} className={parentId ? 'mt-2' : 'mb-4 rounded-xl bg-white p-3 ring-1 ring-gray-200'}>
       <textarea
-        className={`block w-full resize-y rounded-lg border border-gray-300 p-3 text-base focus:border-blue-600 focus:outline-none ${parentId ? 'min-h-16' : 'min-h-24'}`}
+        className={`block w-full resize-y rounded-lg border border-gray-300 p-3 text-base focus:border-indigo-600 focus:outline-none ${parentId ? 'min-h-16' : 'min-h-24'}`}
         placeholder={placeholder}
         maxLength={4000}
         autoFocus={autoFocus}
