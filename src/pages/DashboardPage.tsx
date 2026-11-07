@@ -1,10 +1,9 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
-import { AlarmClock, CircleCheck, ListTodo, Maximize2, Plus, Timer, X } from 'lucide-react'
+import { AlarmClock, CircleCheck, ExternalLink, ListTodo, Plus, Timer } from 'lucide-react'
 import { useAuth } from '../auth/AuthProvider'
 import { ErrorBox, StatusBadge } from '../components/ui'
-import type { StaffPoint } from '../features/map/StaffMap'
-import { displayName, useProfiles } from '../lib/profiles'
+import { useStaffPoints } from '../features/map/useStaffPoints'
 import { supabase } from '../lib/supabase'
 import { STATUS_LABEL } from '../lib/taskStatus'
 import { useProjectMembers } from '../lib/projects'
@@ -14,46 +13,6 @@ import type { TaskStatus } from '../lib/types'
 // Bản đồ (Leaflet + OpenStreetMap) chỉ tải khi mở trang này.
 const StaffMap = lazy(() => import('../features/map/StaffMap'))
 
-// Bản đồ phủ toàn màn hình trong app (không dùng Fullscreen API vì Safari trên iPhone không hỗ trợ;
-// không dùng ResponsiveDialog vì vuốt đóng Drawer tranh thao tác kéo bản đồ). Esc hoặc × để đóng.
-// Nhận cùng `points` với bản đồ nhỏ nên vẫn cập nhật vị trí theo Realtime.
-function FullscreenMap({ points, onClose }: { points: StaffPoint[]; onClose: () => void }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    document.addEventListener('keydown', onKey)
-    const overflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden' // khoá cuộn trang phía sau
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = overflow
-    }
-  }, [onClose])
-
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-white" role="dialog" aria-modal="true" aria-label="Bản đồ vị trí nhân viên">
-      <div className="flex min-h-14 shrink-0 items-center gap-2 border-b border-gray-200 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] pt-[env(safe-area-inset-top)]">
-        <h2 className="flex-1 truncate font-semibold">Vị trí nhân viên</h2>
-        <span className="text-sm text-gray-500">{points.length} người</span>
-        <button
-          className="grid h-11 w-11 place-items-center rounded-lg text-gray-600 hover:bg-gray-100"
-          onClick={onClose}
-          aria-label="Đóng bản đồ toàn màn hình"
-          title="Đóng (Esc)"
-          autoFocus
-        >
-          <X className="h-6 w-6" aria-hidden />
-        </button>
-      </div>
-      <div className="min-h-0 flex-1 bg-gray-100 pb-[env(safe-area-inset-bottom)]">
-        <Suspense fallback={<div className="h-full animate-pulse bg-gray-100" />}>
-          <StaffMap points={points} />
-        </Suspense>
-      </div>
-    </div>
-  )
-}
-
-const RECENT_MS = 2 * 60 * 60 * 1000 // vị trí gửi kèm khi đổi trạng thái việc → trong 2 giờ qua coi là "mới"
 const DONE_DAYS = 7
 
 interface Row {
@@ -63,13 +22,6 @@ interface Row {
   status: TaskStatus
   due_at: string | null
   updated_at: string
-}
-
-interface LastLoc {
-  user_id: string
-  lat: number
-  lon: number
-  recorded_at: string
 }
 
 type OpenStatus = Exclude<TaskStatus, 'done'>
@@ -136,56 +88,36 @@ function StatusBar({ counts }: { counts: Record<OpenStatus, number> }) {
 
 export default function DashboardPage() {
   const { managedProjects } = useAuth()
-  const { byId } = useProfiles()
   const projectIds = useMemo(() => managedProjects.map((t) => t.id), [managedProjects])
   const { members } = useProjectMembers(projectIds)
+  // Vị trí realtime (Realtime tuân theo RLS: chỉ nhận nhân viên mình quản lý); `now` tự cập nhật mỗi phút
+  const { points, now } = useStaffPoints('dashboard-last-locations')
 
   const [rows, setRows] = useState<Row[] | null>(null)
-  const [locs, setLocs] = useState<LastLoc[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [now, setNow] = useState(() => Date.now())
-  const [mapFull, setMapFull] = useState(false)
-  const closeMap = useCallback(() => setMapFull(false), [])
 
   const load = useCallback(async () => {
     setError(null)
     const since = new Date(Date.now() - DONE_DAYS * 86400000).toISOString()
     // Chỉ lấy việc đang mở + việc cập nhật trong 7 ngày (đủ cho các số liệu), RLS giới hạn theo quyền.
-    const [t, l] = await Promise.all([
-      supabase
-        .from('tasks')
-        .select('id, title, project_id, status, due_at, updated_at')
-        .or(`status.neq.done,updated_at.gte.${since}`)
-        .limit(5000),
-      supabase.from('last_locations').select('user_id, lat, lon, recorded_at'),
-    ])
+    const t = await supabase
+      .from('tasks')
+      .select('id, title, project_id, status, due_at, updated_at')
+      .or(`status.neq.done,updated_at.gte.${since}`)
+      .limit(5000)
     if (t.error) return setError('Không tải được số liệu công việc. Kiểm tra kết nối mạng.')
     setRows(t.data as Row[])
-    setLocs((l.data as LastLoc[]) ?? [])
-    setNow(Date.now())
   }, [])
 
   useEffect(() => {
     load()
   }, [load])
 
-  // Vị trí realtime (Realtime tuân theo RLS: chỉ nhận nhân viên mình quản lý)
-  useEffect(() => {
-    const ch = supabase
-      .channel('dashboard-last-locations')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'last_locations' }, (payload) => {
-        const r = payload.new as LastLoc
-        if (!r?.user_id) return
-        setLocs((prev) => [...prev.filter((x) => x.user_id !== r.user_id), r])
-        setNow(Date.now())
-      })
-      .subscribe()
-    const tick = setInterval(() => setNow(Date.now()), 60000)
-    return () => {
-      supabase.removeChannel(ch)
-      clearInterval(tick)
-    }
-  }, [])
+  // Mở bản đồ trong cửa sổ trình duyệt riêng; bấm lại thì dùng lại đúng cửa sổ đó.
+  function openMapWindow() {
+    const w = window.open('/map', 'cahute-map', 'popup,width=1280,height=800')
+    w?.focus()
+  }
 
   const stats = useMemo(() => {
     const counts: Record<OpenStatus, number> = { todo: 0, in_progress: 0, paused: 0 }
@@ -213,20 +145,6 @@ export default function DashboardPage() {
   }, [rows, now])
 
   const staffIds = useMemo(() => new Set(Object.values(members).flat()), [members])
-  const points: StaffPoint[] = useMemo(
-    () =>
-      locs
-        .map((l) => ({
-          userId: l.user_id,
-          name: displayName(byId.get(l.user_id)),
-          lat: l.lat,
-          lon: l.lon,
-          recordedAt: l.recorded_at,
-          recent: now - new Date(l.recorded_at).getTime() < RECENT_MS,
-        }))
-        .sort((a, b) => Number(b.recent) - Number(a.recent) || a.name.localeCompare(b.name, 'vi')),
-    [locs, byId, now],
-  )
   const recentCount = points.filter((p) => p.recent).length
 
   return (
@@ -287,14 +205,13 @@ export default function DashboardPage() {
             </Suspense>
             <button
               className="absolute right-2 top-2 z-10 grid h-11 w-11 place-items-center rounded-lg bg-white text-gray-700 shadow-md ring-1 ring-black/10 hover:bg-gray-50"
-              onClick={() => setMapFull(true)}
-              aria-label="Phóng to bản đồ toàn màn hình"
-              title="Phóng to"
+              onClick={openMapWindow}
+              aria-label="Mở bản đồ trong cửa sổ mới"
+              title="Mở trong cửa sổ mới"
             >
-              <Maximize2 className="h-5 w-5" aria-hidden />
+              <ExternalLink className="h-5 w-5" aria-hidden />
             </button>
           </div>
-          {mapFull && <FullscreenMap points={points} onClose={closeMap} />}
           {points.length === 0 ? (
             <p className="mt-3 text-sm text-gray-500">Chưa có vị trí nào. Vị trí được ghi khi nhân viên đổi trạng thái việc trên điện thoại (cần cho phép dùng vị trí).</p>
           ) : (

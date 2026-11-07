@@ -22,6 +22,7 @@ const StaffTaskDetailPage = lazy(() => import('./staff/StaffTaskDetailPage'))
 const StaffAccountPage = lazy(() => import('./staff/StaffAccountPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const ComingSoonPage = lazy(() => import('./pages/ComingSoonPage'))
+const MapPage = lazy(() => import('./pages/MapPage')) // bản đồ cửa sổ riêng, không có khung quản lý
 
 // Các mục menu của quản lý chưa xây dựng
 const COMING_SOON: [string, string][] = [
@@ -64,6 +65,8 @@ function AppRoutes() {
   return (
     <Suspense fallback={<div className="p-4"><Skeleton rows={2} /></div>}>
       <Routes>
+        {/* Bản đồ vị trí nhân viên chiếm trọn cửa sổ (mở từ trang Tổng quan) */}
+        {isManager && <Route path="map" element={<MapPage />} />}
         {/* Quản lý: sidebar + thanh trên; nhân viên: thanh điều hướng dưới */}
         <Route element={isManager ? <ManagerLayout /> : <Layout />}>
           <Route index element={isManager ? <DashboardPage /> : <Navigate to="/tasks" replace />} />
