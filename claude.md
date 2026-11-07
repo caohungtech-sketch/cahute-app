@@ -50,6 +50,8 @@ Phong cách hiện đại lấy cảm hứng từ Bitrix24:
 - **Nền trắng & xám sáng** (`bg-white`, `bg-gray-50`, `bg-gray-100`): vùng nội dung chính và bảng dữ liệu.
 - **Điểm nhấn – xanh lá** (`bg-green-600` hoặc `emerald-500`): nút hành động chính, nút tạo mới (ví dụ `+ Tạo`).
 - **Huy hiệu/nhãn** (nền nhạt, ví dụ `bg-yellow-50 text-yellow-800`): nhãn vai trò (*Người quản lý dự án*), trạng thái dữ liệu.
+- **Tương tác phụ – indigo** (`indigo-50…800`): liên kết, viền ô nhập khi focus, tab/trang đang chọn, chip người làm, spinner. **Không dùng `blue-*`** cho giao diện; xanh dương chỉ là màu trạng thái *Đang làm* (`STATUS_STYLE` trong `src/lib/taskStatus.ts`) và màu biểu đồ.
+- Nút chính dùng chung: `btn.primary` (`src/components/ui.tsx`) hoặc `Button` của shadcn – đều xanh lá.
 
 ## 4. Bảo mật & bí mật
 
@@ -88,6 +90,7 @@ Hàm SQL dùng chung (`security definer`, `stable`): `my_role()` (không đặt 
   - Nhân viên được giao: `todo → in_progress`, `in_progress ↔ paused`, `in_progress | paused → done`. Không được chuyển về `todo`, không mở lại việc `done`, không sửa cột nào khác ngoài `status` và `result` (trigger báo lỗi nếu cột khác thay đổi).
   - Quản lý: mọi chuyển đổi, kể cả mở lại việc `done`.
 - **Danh sách = bảng có phân trang** (số trang, 10/20/50 dòng), lọc trạng thái và đếm số lượng ở server (`useTaskPage`). Desktop có thêm **Kanban** 4 cột, tải dần (`useTasks`). Đổi trạng thái bằng nút (kéo-thả chỉ là phụ, cho desktop). Cả hai dùng chung `TASK_SELECT` và `setTaskStatus` trong `features/tasks/api.ts`.
+- **Bảng trên máy tính = Data Table** (`TaskDataTable`: shadcn `table` + TanStack Table): sắp xếp theo Công việc/Trạng thái/Hạn/Cập nhật, lọc theo người làm và hạn (Quá hạn, Hôm nay, 7 ngày tới, Không có hạn, khoảng ngày) – tất cả làm **ở server** trong `useTaskPage`, số đếm ở tab cũng theo bộ lọc. Chọn nhiều dòng (chỉ việc thuộc dự án mình quản lý, trong trang đang xem) → `TaskBulkBar`: đổi trạng thái, giao thêm người, xoá. Điện thoại không có các tính năng này.
 - **Điện thoại (< 768px, `useIsMobile`)**: không có Kanban, chỉ danh sách; ô **tìm nhanh autocomplete** (theo tiêu đề, `QuickSearch`) phía trên; 4 tab trạng thái chia đều một hàng Chưa làm (mặc định) · Đang làm · Tạm dừng · Hoàn thành, **không có tab Tất cả**; mỗi tab 20 việc/trang, chỉ hiện nút chuyển trang khi > 20; kích thước gọn (tab/nút cao 40px). Ô nhập luôn ≥ 16px chữ để iOS không tự phóng to.
   - Quản lý: danh sách thẻ trong `TaskTableView`.
   - Nhân viên: trang riêng `src/staff/StaffTasksPage.tsx` (Konsta UI, cùng quy tắc trên); việc có 1 bước tiếp theo thì bấm là đổi luôn, nhiều bước thì mở bảng chọn trượt từ đáy (`StatusSheet`).
