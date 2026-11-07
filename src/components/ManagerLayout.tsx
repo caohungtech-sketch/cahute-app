@@ -61,14 +61,41 @@ function readCollapsed(): boolean {
 function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onToggle?: () => void; onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col bg-indigo-950 text-indigo-100">
-      <div className={`flex h-16 shrink-0 items-center gap-3 ${collapsed ? 'justify-center px-2' : 'px-5'}`}>
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-indigo-400 to-violet-600 text-lg font-bold text-white">
-          C
-        </span>
+      <div className={`flex h-16 shrink-0 items-center gap-3 ${collapsed ? 'justify-center px-2' : 'pl-5 pr-3'}`}>
+        {collapsed && onToggle ? (
+          // Đã thu gọn: logo là nút mở rộng (rê chuột → hiện biểu tượng mở rộng)
+          <button
+            onClick={onToggle}
+            className="group grid h-11 w-11 shrink-0 place-items-center rounded-xl"
+            aria-label="Mở rộng thanh bên"
+            title="Mở rộng"
+          >
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-indigo-400 to-violet-600 text-lg font-bold text-white group-hover:hidden group-focus-visible:hidden">
+              C
+            </span>
+            <span className="hidden h-11 w-11 place-items-center rounded-xl text-indigo-200 group-hover:grid group-hover:bg-white/10 group-hover:text-white group-focus-visible:grid">
+              <PanelLeftOpen className="h-5 w-5" aria-hidden />
+            </span>
+          </button>
+        ) : (
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-indigo-400 to-violet-600 text-lg font-bold text-white">
+            C
+          </span>
+        )}
         {!collapsed && (
-          <span className="truncate text-lg font-bold tracking-tight text-white">
+          <span className="flex-1 truncate text-lg font-bold tracking-tight text-white">
             Cahute <span className="font-medium text-indigo-300">CRM</span>
           </span>
+        )}
+        {!collapsed && onToggle && (
+          <button
+            onClick={onToggle}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-indigo-300 hover:bg-white/10 hover:text-white"
+            aria-label="Thu gọn thanh bên"
+            title="Thu gọn"
+          >
+            <PanelLeftClose className="h-5 w-5" aria-hidden />
+          </button>
         )}
       </div>
 
@@ -91,20 +118,6 @@ function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onTo
           </NavLink>
         ))}
       </nav>
-
-      {onToggle && (
-        <button
-          onClick={onToggle}
-          className={`m-3 flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm text-indigo-300 hover:bg-white/10 hover:text-white ${
-            collapsed ? 'justify-center' : ''
-          }`}
-          aria-label={collapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
-          title={collapsed ? 'Mở rộng' : undefined}
-        >
-          {collapsed ? <PanelLeftOpen className="h-5 w-5" aria-hidden /> : <PanelLeftClose className="h-5 w-5" aria-hidden />}
-          {!collapsed && 'Thu gọn'}
-        </button>
-      )}
     </div>
   )
 }
