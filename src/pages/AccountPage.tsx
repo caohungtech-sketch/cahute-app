@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { btn, inputCls } from '../components/ui'
+import { changeOwnPassword, MIN_PASSWORD, passwordProblem } from '../lib/adminUsers'
 import { supabase } from '../lib/supabase'
 
 export default function AccountPage() {
@@ -49,9 +50,67 @@ export default function AccountPage() {
         </button>
       </form>
 
+      <ChangePasswordForm email={session?.user.email ?? ''} />
+
       <button className={`${btn.danger} w-full`} onClick={signOut}>
         Đăng xuất
       </button>
     </div>
+  )
+}
+
+function ChangePasswordForm({ email }: { email: string }) {
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState(false)
+
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    const problem = passwordProblem(password, confirm)
+    if (problem) return setError(problem)
+    setBusy(true)
+    setError(null)
+    try {
+      await changeOwnPassword(password)
+      setPassword('')
+      setConfirm('')
+      setDone(true)
+    } catch (err) {
+      setError((err as Error).message)
+    }
+    setBusy(false)
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-3 rounded-xl bg-white p-4 ring-1 ring-gray-200">
+      <p className="text-sm font-medium">Đổi mật khẩu</p>
+      <input type="email" autoComplete="username" value={email} readOnly hidden />
+      <input
+        className={inputCls}
+        type="password"
+        placeholder={`Mật khẩu mới (tối thiểu ${MIN_PASSWORD} ký tự)`}
+        autoComplete="new-password"
+        maxLength={72}
+        value={password}
+        onChange={(e) => {
+          setPassword(e.target.value)
+          setDone(false)
+        }}
+      />
+      <input
+        className={inputCls}
+        type="password"
+        placeholder="Nhập lại mật khẩu mới"
+        autoComplete="new-password"
+        value={confirm}
+        onChange={(e) => setConfirm(e.target.value)}
+      />
+      {error && <p className="text-sm text-red-700">{error}</p>}
+      <button className={`${btn.primary} w-full`} disabled={busy || !password || !confirm}>
+        {busy ? 'Đang lưu…' : done ? 'Đã đổi mật khẩu ✓' : 'Đổi mật khẩu'}
+      </button>
+    </form>
   )
 }

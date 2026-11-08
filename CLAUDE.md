@@ -37,7 +37,7 @@ src/
   sw.ts           service worker (precache + push)
 supabase/
   migrations/     mọi thay đổi schema/RLS/trigger/cron
-  functions/      storage-cleanup/   (notify/ telegram-webhook/: chưa có)
+  functions/      storage-cleanup/ admin-users/   (notify/ telegram-webhook/: chưa có)
 docs/             đặc tả chi tiết của từng tính năng lớn
 ```
 
@@ -67,6 +67,7 @@ Phong cách hiện đại lấy cảm hứng từ Bitrix24:
 - **Một nhân viên có thể thuộc nhiều dự án**: bảng `project_members (project_id, user_id)`.
 - **Một dự án có 1 hoặc nhiều quản lý**: bảng `project_managers (project_id, user_id)`, các quản lý của dự án có quyền ngang nhau; chỉ tài khoản `manager` mới được thêm làm quản lý dự án; người tạo dự án tự động là quản lý; dự án luôn còn ít nhất 1 quản lý (trigger).
 - Người đăng ký đầu tiên là quản lý; sau đó **quản lý nào cũng nâng/hạ quyền được người khác** (trang Nhân viên `/staff`, không có cấp admin; tạo/sửa/xoá dự án và thành viên ở trang Dự án `/projects`).
+- **Không tự đăng ký.** Quản lý tạo tài khoản nhân viên (email + mật khẩu tạm sinh ngẫu nhiên, bắt đổi ở lần đăng nhập đầu), đặt lại mật khẩu (đăng xuất mọi thiết bị), xoá = ẩn + khoá đăng nhập – qua Edge Function `admin-users`, không SMTP. Đặc tả: **`docs/auth.md`**.
 - Trigger `profiles_guard` chặn tự hạ quyền mình, giữ ít nhất 1 quản lý, và khi hạ quyền một quản lý thì chuyển các dự án của họ cho người thực hiện.
 - Gỡ nhân viên khỏi dự án → trigger tự gỡ họ khỏi các việc **chưa hoàn thành** của dự án đó.
 

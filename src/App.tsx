@@ -6,6 +6,7 @@ import { btn, FullScreenMessage, Skeleton } from './components/ui'
 import UpdatePrompt from './components/UpdatePrompt'
 import { queryClient } from './lib/queryClient'
 import { isSupabaseConfigured } from './lib/supabase'
+import ChangePasswordPage from './pages/ChangePasswordPage'
 import LoginPage from './pages/LoginPage'
 import TasksPage from './pages/TasksPage'
 
@@ -44,6 +45,9 @@ function AppRoutes() {
     )
 
   if (!session) return <LoginPage />
+
+  // Mật khẩu tạm do quản lý cấp: phải đổi trước khi dùng app (docs/auth.md)
+  if (session.user.app_metadata?.must_change_password === true) return <ChangePasswordPage />
 
   if (!profile)
     return (
