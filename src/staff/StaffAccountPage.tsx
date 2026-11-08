@@ -32,14 +32,11 @@ export default function StaffAccountPage() {
     if (problem) return setToast(problem)
     setChanging(true)
     try {
-      await changeOwnPassword(password)
-      setPassword('')
-      setConfirm('')
-      setToast('Đã đổi mật khẩu.')
+      await changeOwnPassword(password) // đăng xuất → về trang đăng nhập
     } catch (err) {
       setToast((err as Error).message)
+      setChanging(false)
     }
-    setChanging(false)
   }
 
   return (

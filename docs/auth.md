@@ -31,7 +31,7 @@ Ngoài phạm vi: đăng nhập Google, magic link/OTP, gửi email mời. Lộ 
 
 1. Đăng nhập bằng email + mật khẩu tạm như bình thường.
 2. `App.tsx`: nếu `session.user.app_metadata.must_change_password === true` → chỉ hiện trang **Đổi mật khẩu** (toàn màn hình, không có menu; có nút Đăng xuất).
-3. Nhập mật khẩu mới 2 lần (≥ 8 ký tự) → gọi `admin-users` (`action: 'change_own_password'`) → `supabase.auth.refreshSession()` để JWT mới không còn cờ → vào app.
+3. Nhập mật khẩu mới 2 lần (≥ 8 ký tự) → gọi `admin-users` (`action: 'change_own_password'`) → server tắt cờ và **đăng xuất mọi thiết bị** → app về trang đăng nhập, báo "Đã đổi mật khẩu. Hãy đăng nhập lại bằng mật khẩu mới."
 
 ### 2.3 Quên mật khẩu
 
@@ -64,7 +64,7 @@ Trang Tài khoản (quản lý: `AccountPage`, nhân viên: `StaffAccountPage`) 
 | `create` `{ full_name, email, phone?, hired_on?, project_ids[] }` | quản lý | `auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name }, app_metadata: { must_change_password: true } })` → trigger `handle_new_user` tạo `profiles` (`staff`) → upsert `staff_details` → insert `project_members` (mọi `project_id` phải nằm trong `project_managers` của người gọi, nếu không → lỗi, không tạo gì). Trả `{ user_id, password }` |
 | `reset_password` `{ user_id }` | quản lý; người đích phải là `staff` | `auth.admin.updateUserById(user_id, { password, app_metadata: { must_change_password: true } })`. Trả `{ password }` |
 | `deactivate` `{ user_id }` | quản lý; không phải chính mình | `profiles.deleted_at = now()`, `updateUserById(user_id, { ban_duration: '876000h' })`, đăng xuất mọi thiết bị |
-| `change_own_password` `{ password }` | mọi người đã đăng nhập | `updateUserById(caller, { password, app_metadata: { must_change_password: false } })` |
+| `change_own_password` `{ password }` | mọi người đã đăng nhập | `updateUserById(caller, { password, app_metadata: { must_change_password: false } })`, đăng xuất mọi thiết bị (cả máy đang dùng) |
 
 Đăng xuất mọi thiết bị: admin API không có lệnh theo `user_id`, nên dùng hàm SQL `admin_revoke_sessions(user_id)` (xoá `auth.sessions`, refresh token bị xoá theo) – **chỉ service role gọi được**. Access token đang có vẫn dùng được tới khi hết hạn (mặc định ≤ 1 giờ); sau đó không làm mới được nữa.
 

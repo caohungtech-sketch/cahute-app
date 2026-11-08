@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
+import { takeLoginNotice } from '../lib/adminUsers'
 import { supabase } from '../lib/supabase'
 import { btn, inputCls } from '../components/ui'
 
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice] = useState(takeLoginNotice) // ví dụ: vừa đổi mật khẩu
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -55,6 +57,7 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
+          {notice && !error && <p className="text-sm text-green-700">{notice}</p>}
           {error && <p className="text-sm text-red-700">{error}</p>}
 
           <button className={`${btn.primary} w-full`} disabled={busy}>

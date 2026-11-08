@@ -167,6 +167,8 @@ async function changeOwnPassword(admin: SupabaseClient, caller: string, body: Re
     app_metadata: { must_change_password: false },
   })
   if (error) throw error
+  // Đổi mật khẩu → đăng xuất mọi thiết bị; app tự về trang đăng nhập
+  await revokeSessions(admin, caller)
   return { ok: true }
 }
 

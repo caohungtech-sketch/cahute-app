@@ -64,7 +64,6 @@ function ChangePasswordForm({ email }: { email: string }) {
   const [confirm, setConfirm] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [done, setDone] = useState(false)
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -73,14 +72,11 @@ function ChangePasswordForm({ email }: { email: string }) {
     setBusy(true)
     setError(null)
     try {
-      await changeOwnPassword(password)
-      setPassword('')
-      setConfirm('')
-      setDone(true)
+      await changeOwnPassword(password) // đăng xuất → về trang đăng nhập
     } catch (err) {
       setError((err as Error).message)
+      setBusy(false)
     }
-    setBusy(false)
   }
 
   return (
@@ -94,10 +90,7 @@ function ChangePasswordForm({ email }: { email: string }) {
         autoComplete="new-password"
         maxLength={72}
         value={password}
-        onChange={(e) => {
-          setPassword(e.target.value)
-          setDone(false)
-        }}
+        onChange={(e) => setPassword(e.target.value)}
       />
       <input
         className={inputCls}
@@ -109,7 +102,7 @@ function ChangePasswordForm({ email }: { email: string }) {
       />
       {error && <p className="text-sm text-red-700">{error}</p>}
       <button className={`${btn.primary} w-full`} disabled={busy || !password || !confirm}>
-        {busy ? 'Đang lưu…' : done ? 'Đã đổi mật khẩu ✓' : 'Đổi mật khẩu'}
+        {busy ? 'Đang lưu…' : 'Đổi mật khẩu'}
       </button>
     </form>
   )

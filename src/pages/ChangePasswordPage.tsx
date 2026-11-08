@@ -18,7 +18,7 @@ export default function ChangePasswordPage() {
     setBusy(true)
     setError(null)
     try {
-      await changeOwnPassword(password) // làm mới phiên → App tự vào trang chính
+      await changeOwnPassword(password) // đăng xuất → App về trang đăng nhập
     } catch (err) {
       setError((err as Error).message)
       setBusy(false)

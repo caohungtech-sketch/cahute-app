@@ -1,4 +1,5 @@
 import { FunctionsHttpError } from '@supabase/supabase-js'
+import { queryClient } from './queryClient'
 import { supabase } from './supabase'
 
 // Gọi Edge Function admin-users (xem docs/auth.md). Lỗi ném ra Error có thông báo tiếng Việt.
@@ -32,10 +33,29 @@ export const resetStaffPassword = (userId: string) =>
 
 export const deactivateUser = (userId: string) => call<{ signed_out: boolean }>({ action: 'deactivate', user_id: userId })
 
-// Đổi xong phải làm mới phiên để JWT mới không còn cờ must_change_password.
+const LOGIN_NOTICE_KEY = 'cahute:login-notice'
+
+// Đổi xong: server đã đăng xuất mọi thiết bị → xoá phiên ở máy này, về trang đăng nhập kèm thông báo.
 export async function changeOwnPassword(password: string) {
   await call<{ ok: true }>({ action: 'change_own_password', password })
-  await supabase.auth.refreshSession()
+  try {
+    sessionStorage.setItem(LOGIN_NOTICE_KEY, 'Đã đổi mật khẩu. Hãy đăng nhập lại bằng mật khẩu mới.')
+  } catch {
+    // không lưu được thông báo thì thôi
+  }
+  await supabase.auth.signOut({ scope: 'local' })
+  queryClient.clear()
+}
+
+// Thông báo một lần cho trang đăng nhập (đọc xong là xoá).
+export function takeLoginNotice(): string | null {
+  try {
+    const msg = sessionStorage.getItem(LOGIN_NOTICE_KEY)
+    sessionStorage.removeItem(LOGIN_NOTICE_KEY)
+    return msg
+  } catch {
+    return null
+  }
 }
 
 // Kiểm tra mật khẩu mới ở giao diện; null = hợp lệ.
