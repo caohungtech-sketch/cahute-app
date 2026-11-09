@@ -18,7 +18,7 @@ Mục lục: **A. Dự án & cách làm việc** (1–2) · **B. Kỹ thuật** 
 - **Tính năng lớn: spec trước, code sau.**
   - Người dùng mô tả cốt lõi (ai dùng, làm được gì, vì sao, không cần gì) → Claude viết nháp `docs/<tên>.md` gồm: Mục tiêu + Ngoài phạm vi · Luồng sử dụng (kể cả lỗi) · Dữ liệu + RLS · Giao diện máy tính/điện thoại · Bảo mật & giới hạn · Kế hoạch triển khai · Câu hỏi mở (mỗi câu kèm đề xuất).
   - Chỗ chưa rõ đưa vào "Câu hỏi mở", không tự quyết. Chỉ code khi spec ghi `Trạng thái: đã chốt <ngày>`; đổi ý giữa chừng thì sửa spec trước.
-  - Xong tính năng: thêm tóm tắt vài dòng + đường dẫn spec vào file này.
+  - Xong tính năng: thêm vào file này 2–5 dòng **luật không được phá** + đường dẫn spec; chi tiết chỉ nằm trong spec, không chép hai nơi. Spec mở rộng tính năng cũ (ví dụ thêm cột cho `tasks`) thì trỏ về spec cũ, không chép lại.
 
 ### 2. Định hướng & lộ trình
 
@@ -62,6 +62,7 @@ supabase/
   functions/      storage-cleanup/ admin-users/   (notify/ telegram-webhook/: chưa có)
 docs/             spec chi tiết – đọc trước khi sửa phần liên quan
   design-system.md    quy ước giao diện: màu, chữ, kích thước, component, Konsta
+  tasks.md            công việc: trạng thái, danh sách/Kanban, chi tiết việc, bình luận
   auth.md             tài khoản: quản lý tạo nhân viên, mật khẩu tạm, đặt lại mật khẩu
   location.md         vị trí khi đổi trạng thái việc, bản đồ
   notifications.md    thông báo giao việc Web Push + Telegram (chưa làm)
@@ -114,22 +115,11 @@ Hàm SQL dùng chung (`security definer`, `stable`): `my_role()` (không đặt 
 
 ### 7. Công việc (danh sách + Kanban)
 
-- Bảng `tasks`: `id, project_id, title, description, status, result, created_by, due_at, created_at, updated_at`. `result` (Kết quả) do nhân viên được giao hoặc quản lý ghi.
-- Trang chi tiết **sửa trực tiếp** (không có trang sửa riêng): quản lý sửa tiêu đề/mô tả/hạn/kết quả, nhân viên được giao chỉ sửa kết quả; nút Lưu chỉ hiện khi có thay đổi. Người làm hiển thị dạng **chip** (quản lý: × gỡ, "+ Thêm người" trong dự án của việc).
-- **Một việc giao được cho nhiều nhân viên**, quản lý thêm/bớt người bất cứ lúc nào: bảng `task_assignees (task_id, user_id, assigned_by, assigned_at)`, khoá chính `(task_id, user_id)`. Nhân viên bị gỡ khỏi việc mất quyền xem ngay (RLS dựa trên `task_assignees`); bình luận cũ của họ vẫn giữ.
-- `status` là enum 4 giá trị, hiển thị: `todo` = Chưa làm · `in_progress` = Đang làm · `paused` = Tạm dừng · `done` = Hoàn thành. Trạng thái là **chung cho cả việc**: bất kỳ người được giao nào đổi thì mọi người cùng thấy.
-- Quy tắc trạng thái (thực thi bằng trigger `BEFORE UPDATE`, không chỉ ở UI):
-  - Việc mới tạo là `todo`. Giao/đổi người **không** làm đổi trạng thái: việc vẫn nằm ở cột Chưa làm cho tới khi nhân viên bấm "Đang làm".
-  - Nhân viên được giao: `todo → in_progress`, `in_progress ↔ paused`, `in_progress | paused → done`. Không được chuyển về `todo`, không mở lại việc `done`, không sửa cột nào khác ngoài `status` và `result` (trigger báo lỗi nếu cột khác thay đổi).
-  - Quản lý: mọi chuyển đổi, kể cả mở lại việc `done`.
-- **Danh sách = bảng có phân trang** (số trang, 10/20/50 dòng), lọc trạng thái và đếm số lượng ở server (`useTaskPage`). Desktop có thêm **Kanban** 4 cột, tải dần (`useTasks`). Đổi trạng thái bằng nút (kéo-thả chỉ là phụ, cho desktop). Cả hai dùng chung `TASK_SELECT` và `setTaskStatus` trong `features/tasks/api.ts`.
-- **Bảng trên máy tính = Data Table** (`TaskDataTable`: shadcn `table` + TanStack Table): sắp xếp theo Công việc/Trạng thái/Hạn/Cập nhật, lọc theo người làm và hạn (Quá hạn, Hôm nay, 7 ngày tới, Không có hạn, khoảng ngày) – tất cả làm **ở server** trong `useTaskPage`, số đếm ở tab cũng theo bộ lọc. Chọn nhiều dòng (chỉ việc thuộc dự án mình quản lý, trong trang đang xem) → `TaskBulkBar`: đổi trạng thái, giao thêm người, xoá. Điện thoại không có các tính năng này.
-- **Điện thoại (< 768px, `useIsMobile`)**: không có Kanban, chỉ danh sách; ô **tìm nhanh autocomplete** (theo tiêu đề, `QuickSearch`) phía trên; 4 tab trạng thái chia đều một hàng Chưa làm (mặc định) · Đang làm · Tạm dừng · Hoàn thành, **không có tab Tất cả**; mỗi tab 20 việc/trang, chỉ hiện nút chuyển trang khi > 20; kích thước gọn (tab/nút cao 40px). Ô nhập luôn ≥ 16px chữ để iOS không tự phóng to.
-  - Quản lý: danh sách thẻ trong `TaskTableView`.
-  - Nhân viên: trang riêng `src/staff/StaffTasksPage.tsx` (Konsta UI, cùng quy tắc trên); việc có 1 bước tiếp theo thì bấm là đổi luôn, nhiều bước thì mở bảng chọn trượt từ đáy (`StatusSheet`).
-- Đổi trạng thái dùng optimistic update, lỗi thì hoàn tác và báo người dùng.
-- Báo cáo kết quả: `task_comments (id, task_id, author_id, parent_id, body, created_at)` + `task_attachments (id, task_id, comment_id, storage_path, width, height, size_bytes)`.
-- **Trả lời bình luận chỉ 1 cấp**: `parent_id` luôn trỏ tới bình luận gốc (trigger tự quy về gốc nếu trả lời một câu trả lời). Bình luận gốc phân trang theo cursor (20/lần); câu trả lời tải kèm theo các bình luận gốc đang hiển thị.
+Đặc tả đầy đủ (dữ liệu, danh sách/Kanban, máy tính/điện thoại, chi tiết việc, bình luận): **`docs/tasks.md`** – đọc trước khi sửa. Luật không được phá:
+- **Một việc giao được cho nhiều nhân viên** (`task_assignees`); người được giao phải thuộc dự án của việc; bị gỡ là mất quyền xem ngay.
+- 4 trạng thái **chung cho cả việc**: Chưa làm · Đang làm · Tạm dừng · Hoàn thành. Quy tắc chuyển **thực thi bằng trigger**, không chỉ ở UI: việc mới là `todo` và giao người không đổi trạng thái; nhân viên chỉ được `todo → in_progress`, `in_progress ↔ paused`, `in_progress | paused → done`, không về `todo`, không mở lại `done`, chỉ sửa được `status` và `result`; quản lý chuyển tự do.
+- Đổi trạng thái: optimistic update, lỗi thì hoàn tác và báo người dùng.
+- Bình luận trả lời **chỉ 1 cấp**.
 
 ### 8. Chat nội bộ
 
