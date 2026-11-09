@@ -2,15 +2,37 @@
 
 Web app giao nhận việc cho đội nhân viên hiện trường: danh sách + Kanban, chat nội bộ, thông báo giao việc qua Web Push và Telegram, ghi vị trí nhân viên khi đổi trạng thái việc. Nhân viên dùng trên điện thoại dưới dạng PWA.
 
-## 1. Nguyên tắc làm việc
+Mục lục: **A. Dự án & cách làm việc** (1–2) · **B. Kỹ thuật** (3–5) · **C. Nghiệp vụ** (6–10) · **D. Quy định chung** (11–14)
+
+---
+
+## A. DỰ ÁN & CÁCH LÀM VIỆC
+
+### 1. Nguyên tắc làm việc
 
 - **Hỏi khi chưa rõ.** Nêu giả định; nếu có nhiều cách hiểu, trình bày ra thay vì tự chọn.
 - **Tối giản.** Chỉ làm đúng yêu cầu, không thêm tính năng/abstraction/cấu hình "phòng khi cần".
 - **Sửa đúng chỗ.** Không tự refactor, đổi format code không liên quan. Thấy code chết thì báo, đừng xoá.
 - **Có tiêu chí kiểm chứng.** Việc nhiều bước: nêu kế hoạch ngắn `bước → cách kiểm tra`. Xong phải chạy `npm run build` (và lint) không lỗi.
 - **Giao diện và thông báo bằng tiếng Việt**; tên bảng/cột/biến/hàm bằng tiếng Anh.
+- **Tính năng lớn: spec trước, code sau.**
+  - Người dùng mô tả cốt lõi (ai dùng, làm được gì, vì sao, không cần gì) → Claude viết nháp `docs/<tên>.md` gồm: Mục tiêu + Ngoài phạm vi · Luồng sử dụng (kể cả lỗi) · Dữ liệu + RLS · Giao diện máy tính/điện thoại · Bảo mật & giới hạn · Kế hoạch triển khai · Câu hỏi mở (mỗi câu kèm đề xuất).
+  - Chỗ chưa rõ đưa vào "Câu hỏi mở", không tự quyết. Chỉ code khi spec ghi `Trạng thái: đã chốt <ngày>`; đổi ý giữa chừng thì sửa spec trước.
+  - Xong tính năng: thêm tóm tắt vài dòng + đường dẫn spec vào file này.
 
-## 2. Kiến trúc & công nghệ
+### 2. Định hướng & lộ trình
+
+- Hiện tại Cahute phục vụ **một công ty**. Định hướng: bán dạng **SaaS** cho cửa hàng sửa chữa / điện lạnh / bảo trì (khoảng 5–10 thợ). Kế hoạch đa khách hàng (tách dữ liệu theo công ty, gói cước, vận hành): **`docs/saas-roadmap.md`** – mới là định hướng, chưa làm.
+- Thứ tự tính năng đã thống nhất:
+  1. **Tài khoản** – đã xong (`docs/auth.md`).
+  2. **Khách hàng + địa chỉ** – chưa có spec. Lấy toạ độ bằng dán link Google Maps hoặc bấm trên bản đồ OSM (miễn phí); Goong Autocomplete để sau. Không ghép Google Places lên bản đồ OSM (vi phạm điều khoản Google).
+  3. **Bảng giá dịch vụ + thu tiền** – bảng giá mẫu theo ngành; hạng mục việc chép giá lúc thêm; thu tiền bằng QR VietQR tự sinh (tiền vào thẳng tài khoản cửa hàng). **Không in phiếu**: phiếu + QR chỉ hiển thị trên điện thoại của thợ để khách quét/chụp lại.
+
+---
+
+## B. KỸ THUẬT
+
+### 3. Kiến trúc & công nghệ
 
 ```
 VS Code (Claude Code) → GitHub (main) → Vercel (tự build & deploy) → Supabase
@@ -38,22 +60,28 @@ src/
 supabase/
   migrations/     mọi thay đổi schema/RLS/trigger/cron
   functions/      storage-cleanup/ admin-users/   (notify/ telegram-webhook/: chưa có)
-docs/             đặc tả chi tiết của từng tính năng lớn
+docs/             spec chi tiết – đọc trước khi sửa phần liên quan
+  design-system.md    quy ước giao diện: màu, chữ, kích thước, component, Konsta
+  auth.md             tài khoản: quản lý tạo nhân viên, mật khẩu tạm, đặt lại mật khẩu
+  location.md         vị trí khi đổi trạng thái việc, bản đồ
+  notifications.md    thông báo giao việc Web Push + Telegram (chưa làm)
+  storage-cleanup.md  dọn ảnh mồ côi hằng đêm
+  saas-roadmap.md     lộ trình SaaS nhiều công ty (định hướng)
 ```
 
-Lệnh: `npm run dev` · `npm run build` · `npm run lint` · `supabase migration new <tên>` · `supabase db push` · `supabase functions deploy <tên>` · `supabase gen types typescript --linked > src/types/database.ts`
+Lệnh:
+- `npm run dev` · `npm run build` · `npm run lint`
+- Supabase CLI cài trong dự án (devDependency) nên chạy qua **`npx`**: `npx supabase migration new <tên>` · `npx supabase db push --remote` (CLI v3 thiếu `--remote` sẽ trỏ vào Docker cục bộ) · `npx supabase functions deploy <tên>` · `npx supabase gen types typescript --linked > src/types/database.ts`
 
-## 3. Màu sắc & giao diện (Design System)
+### 4. Giao diện (Design System)
 
-Phong cách hiện đại lấy cảm hứng từ Bitrix24:
-- **Màu chủ đạo – xanh tím đậm** (`indigo-900`/`purple-900`/`slate-900` hoặc độ sâu tương đương): nền Sidebar, thanh công cụ hệ thống, vùng nhận diện thương hiệu.
-- **Nền trắng & xám sáng** (`bg-white`, `bg-gray-50`, `bg-gray-100`): vùng nội dung chính và bảng dữ liệu.
-- **Điểm nhấn – xanh lá** (`bg-green-600` hoặc `emerald-500`): nút hành động chính, nút tạo mới (ví dụ `+ Tạo`).
-- **Huy hiệu/nhãn** (nền nhạt, ví dụ `bg-yellow-50 text-yellow-800`): nhãn vai trò (*Người quản lý dự án*), trạng thái dữ liệu.
-- **Tương tác phụ – indigo** (`indigo-50…800`): liên kết, viền ô nhập khi focus, tab/trang đang chọn, chip người làm, spinner. **Không dùng `blue-*`** cho giao diện; xanh dương chỉ là màu trạng thái *Đang làm* (`STATUS_STYLE` trong `src/lib/taskStatus.ts`) và màu biểu đồ.
-- Nút chính dùng chung: `btn.primary` (`src/components/ui.tsx`) hoặc `Button` của shadcn – đều xanh lá.
+Chi tiết: **`docs/design-system.md`** – đọc trước khi làm giao diện (màu, chữ, bo góc, vùng chạm, component dùng chung, chế độ tối, lỗi Konsta đã gặp). Tóm tắt:
+- Sidebar xanh tím đậm (`indigo-950`) · nền trắng/xám sáng · **nút chính xanh lá** (`btn.primary` hoặc `Button` shadcn) · tương tác phụ indigo · nhãn nền nhạt (`bg-yellow-50`).
+- **Không dùng `blue-*`** cho giao diện (chỉ là màu trạng thái *Đang làm* và biểu đồ).
+- Dùng lại class/component có sẵn (`src/components/ui.tsx`, `src/components/shadcn/`, Konsta) trước khi tự viết; màu shadcn lấy từ biến trong `src/index.css`, không ghi mã màu cứng.
+- Chế độ tối: dùng `white` + `gray-*` là tự đổi, không cần thêm `dark:`.
 
-## 4. Bảo mật & bí mật
+### 5. Bảo mật & bí mật
 
 - **Không bao giờ commit `.env*`** (trừ `.env.example`). Kiểm tra `.gitignore` trước khi commit.
 - Biến có tiền tố `VITE_` lộ ra trình duyệt → chỉ dùng cho giá trị công khai: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_VAPID_PUBLIC_KEY`. Khai báo trong Vercel → Project Settings → Environment Variables.
@@ -61,7 +89,11 @@ Phong cách hiện đại lấy cảm hứng từ Bitrix24:
 - **Phân quyền thực thi ở database (RLS + trigger)**, giao diện chỉ ẩn/hiện cho tiện. Mọi bảng mới phải `enable row level security` kèm policy ngay trong cùng migration.
 - Schema chỉ thay đổi qua file trong `supabase/migrations/`. Nếu chạy tay trong SQL Editor thì vẫn phải lưu lại thành migration.
 
-## 5. Vai trò & phân quyền
+---
+
+## C. NGHIỆP VỤ
+
+### 6. Vai trò & phân quyền
 
 - Hai vai trò trong `profiles.role`: `manager` | `staff`. ("Dự án" trước đây gọi là "Nhóm", đổi tên ở migration 0012.)
 - **Một nhân viên có thể thuộc nhiều dự án**: bảng `project_members (project_id, user_id)`.
@@ -80,7 +112,7 @@ Hàm SQL dùng chung (`security definer`, `stable`): `my_role()` (không đặt 
 | Chat | Thành viên của cuộc trò chuyện | Thành viên của cuộc trò chuyện |
 | Vị trí & lịch sử trạng thái | Nhân viên/việc trong dự án mình phụ trách | Chỉ của mình; **không** xem được vị trí người khác |
 
-## 6. Công việc (danh sách + Kanban)
+### 7. Công việc (danh sách + Kanban)
 
 - Bảng `tasks`: `id, project_id, title, description, status, result, created_by, due_at, created_at, updated_at`. `result` (Kết quả) do nhân viên được giao hoặc quản lý ghi.
 - Trang chi tiết **sửa trực tiếp** (không có trang sửa riêng): quản lý sửa tiêu đề/mô tả/hạn/kết quả, nhân viên được giao chỉ sửa kết quả; nút Lưu chỉ hiện khi có thay đổi. Người làm hiển thị dạng **chip** (quản lý: × gỡ, "+ Thêm người" trong dự án của việc).
@@ -99,7 +131,7 @@ Hàm SQL dùng chung (`security definer`, `stable`): `my_role()` (không đặt 
 - Báo cáo kết quả: `task_comments (id, task_id, author_id, parent_id, body, created_at)` + `task_attachments (id, task_id, comment_id, storage_path, width, height, size_bytes)`.
 - **Trả lời bình luận chỉ 1 cấp**: `parent_id` luôn trỏ tới bình luận gốc (trigger tự quy về gốc nếu trả lời một câu trả lời). Bình luận gốc phân trang theo cursor (20/lần); câu trả lời tải kèm theo các bình luận gốc đang hiển thị.
 
-## 7. Chat nội bộ
+### 8. Chat nội bộ
 
 - Bảng: `conversations (id, type: direct|group, name)`, `conversation_members (conversation_id, user_id, last_read_at)`, `messages (id, conversation_id, sender_id, body, image_path, created_at)`.
 - RLS: chỉ thành viên mới đọc/gửi tin; `sender_id` phải bằng `auth.uid()`.
@@ -108,41 +140,43 @@ Hàm SQL dùng chung (`security definer`, `stable`): `my_role()` (không đặt 
 - Chat **không** gửi qua Telegram.
 - Hiện trạng: đã có bảng trong DB (migration 0002); chưa có giao diện (menu "Tin nhắn" của quản lý đang là trang "sắp ra mắt").
 
-## 8. Thông báo giao việc (Web Push + Telegram)
+### 9. Thông báo giao việc (Web Push + Telegram)
 
 Chỉ người **mới được thêm** vào việc nhận thông báo (trigger `AFTER INSERT` trên `task_assignees` → bảng `notifications` → Edge Function `notify`). **Không bao giờ để thông báo làm chặn hoặc rollback việc giao việc.** Hiện trạng: đã có bảng trong DB (migration 0003); chưa có Edge Function `notify`/`telegram-webhook` và giao diện. Đặc tả đầy đủ: **`docs/notifications.md`** – đọc trước khi làm.
 
-## 9. Vị trí nhân viên (ghi khi đổi trạng thái)
+### 10. Vị trí nhân viên (ghi khi đổi trạng thái)
 
 Không theo dõi liên tục: khi nhân viên bấm đổi trạng thái việc, app lấy vị trí **một lần** và gửi qua RPC `set_task_status`; DB tự ghi lịch sử mọi lần đổi trạng thái vào `task_status_events` và cập nhật `last_locations`. **Không bao giờ chặn việc đổi trạng thái vì không lấy được vị trí.** Toạ độ tự xoá sau 30 ngày. Quản lý xem trên bản đồ Leaflet + OSM (trang Tổng quan) và mục "Lịch sử trạng thái" (chi tiết việc). Đã bỏ Traccar (migration 0015). Đặc tả đầy đủ: **`docs/location.md`** – đọc trước khi sửa.
 
-## 10. Ảnh tải lên – luôn nén trước khi upload
+---
+
+## D. QUY ĐỊNH CHUNG
+
+### 11. Ảnh tải lên – luôn nén trước khi upload
 
 - Mọi chỗ upload (bình luận, chat, avatar) dùng chung `src/lib/compressImage.ts`; **không bao giờ upload file gốc**.
 - Cạnh dài tối đa **1280 px**, xuất **WebP chất lượng 0.7**. Nếu trình duyệt không ra được WebP thì dùng JPEG 0.75. Mục tiêu ≤ 300 KB; nếu vượt thì giảm chất lượng từng bước (tối thiểu 0.5).
 - Đọc ảnh bằng `createImageBitmap(file, { imageOrientation: 'from-image' })` để giữ đúng chiều xoay. Vẽ lại qua canvas để loại bỏ EXIF (có GPS).
-- Phía server: bucket **private**, `file_size_limit` 1 MB, `allowed_mime_types` `image/webp, image/jpeg`. Đường dẫn `tasks/{task_id}/…`, `chat/{conversation_id}/…`, policy Storage theo đúng quyền của mục 5. Hiển thị bằng signed URL và `loading="lazy"`.
+- Phía server: bucket **private**, `file_size_limit` 1 MB, `allowed_mime_types` `image/webp, image/jpeg`. Đường dẫn `tasks/{task_id}/…`, `chat/{conversation_id}/…`, policy Storage theo đúng quyền của mục 6. Hiển thị bằng signed URL và `loading="lazy"`.
 - **Ảnh mồ côi** (xoá việc/dự án, gửi bình luận lỗi): Edge Function `storage-cleanup` dọn hằng đêm qua Storage API, không xoá file bằng SQL. Thêm thư mục ảnh mới (ví dụ `chat/…`) thì mở rộng `find_orphan_attachments`. Xem `docs/storage-cleanup.md`.
 
-## 11. PWA & giao diện điện thoại
+### 12. PWA & giao diện điện thoại
 
 - Thiết kế mobile-first (từ < 768 px trở lên), không cuộn ngang trang.
-- **Vùng chạm:** nút hành động chính ≥ 48 px; nút/tab gọn trong danh sách điện thoại ≥ 40 px (mục 6). Với Konsta: nút chính dùng `large` (48 px); **không** dùng nút `small` (28 px) hay cỡ mặc định (34 px) mà không tăng chiều cao (ví dụ `!h-10`).
-- **Vùng tai thỏ/thanh home (`safe-area`):** trang quản lý tự dùng `env(safe-area-inset-*)`; trang nhân viên để Navbar/Tabbar của Konsta tự xử lý, **không** thêm `env()` lần nữa.
+- **Vùng chạm** (nút chính ≥ 48 px, nút gọn ≥ 40 px), **safe-area** và **lỗi Konsta đã gặp** (z-index, lề `BlockTitle`): xem `docs/design-system.md` mục 5 và 7.
 - Nhân viên dùng thanh điều hướng dưới: Công việc · Chat · Thông báo · Tài khoản (hiện mới có Công việc · Tài khoản).
-- **Konsta – tránh lỗi đã gặp:**
-  - Thứ tự lớp: thanh tab `z-30` < bảng chọn/hộp thoại/popup của Konsta `z-40` < toast `z-50`. Không đặt thanh tab ngang hoặc cao hơn `z-40` (sẽ che nút Huỷ và lớp nền tối).
-  - Khối (`Block`/`List`) nằm ngay sau `BlockTitle` giữ lề mặc định của Konsta, không thu lề `my-*` (tiêu đề sẽ bị khối đè lên).
 - Manifest: tên, icon 192/512 + maskable, `display: standalone`, `theme_color`, `start_url: /`.
 - Service worker: precache app shell + asset tĩnh; **không cache response API/Auth của Supabase**. Có thông báo "Có phiên bản mới – Tải lại".
 - Route-based code splitting; bản đồ (Leaflet) và trang quản lý chỉ tải khi mở. Có skeleton khi tải và nút "Thử lại" khi lỗi mạng; không để màn hình trắng.
 
-## 12. Thời gian
+### 13. Thời gian
 
 Lưu `timestamptz` (UTC) trong DB. Chỉ đổi sang giờ `Asia/Ho_Chi_Minh` khi hiển thị, qua helper trong `src/lib/time.ts`.
 
-## 13. Deploy
+### 14. Deploy
 
-- Trước khi push: `npm run build` và `npm run lint` không lỗi. Có migration mới thì `supabase db push` trước khi deploy code dùng tới nó.
+- Trước khi push: `npm run build` và `npm run lint` không lỗi.
+- Có migration mới: chạy `npx supabase db push --remote` **trước**, rồi mới `git push origin main` (code gọi bảng/RPC mới không được lên production trước migration).
+- Lệnh ghi vào DB production (`db push`, `migration repair`…): Claude chỉ chạy khi người dùng bảo chạy đúng lệnh đó; mặc định đưa lệnh đầy đủ để người dùng tự chạy và chờ xác nhận.
 - Thêm domain Vercel (production + `*.vercel.app` cho preview) vào Supabase → Authentication → URL Configuration.
 - Commit nhỏ, message rõ ràng. Chỉ commit/push khi người dùng yêu cầu.

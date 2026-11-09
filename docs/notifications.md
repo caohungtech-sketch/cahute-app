@@ -1,6 +1,6 @@
 # Thông báo giao việc (Web Push + Telegram)
 
-> Đặc tả chi tiết, tách ra từ CLAUDE.md (mục 8). Đọc file này trước khi làm tính năng thông báo.
+> Đặc tả chi tiết, tách ra từ CLAUDE.md (mục 9). Đọc file này trước khi làm tính năng thông báo.
 
 Luồng: trigger `AFTER INSERT` trên `task_assignees` (chỉ người **mới được thêm** nhận thông báo, người đã có sẵn thì không) → insert `notifications (id, user_id, task_id, title, read_at, push_status, telegram_status)` → Database Webhook gọi Edge Function `notify` → gửi Web Push + Telegram.
 

@@ -1,4 +1,4 @@
-// Mọi ảnh phải đi qua hàm này trước khi upload (CLAUDE.md mục 9).
+// Mọi ảnh phải đi qua hàm này trước khi upload (CLAUDE.md mục 11).
 const MAX_SIDE = 1280
 const TARGET_BYTES = 300 * 1024
 const HARD_LIMIT_BYTES = 1024 * 1024 // khớp file_size_limit của bucket

@@ -1,6 +1,6 @@
 # Vị trí nhân viên – ghi khi đổi trạng thái việc
 
-> Đặc tả chi tiết, tách ra từ CLAUDE.md (mục 9). Đọc file này trước khi sửa phần vị trí / bản đồ.
+> Đặc tả chi tiết, tách ra từ CLAUDE.md (mục 10). Đọc file này trước khi sửa phần vị trí / bản đồ.
 > Thay cho cách cũ dùng Traccar Client (đã bỏ ở migration 0015).
 
 ## Cách hoạt động

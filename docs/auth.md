@@ -1,6 +1,6 @@
 # Tài khoản – quản lý tạo nhân viên, đổi mật khẩu lần đầu, đặt lại mật khẩu
 
-> Đặc tả, liên quan CLAUDE.md mục 4 (bí mật) và mục 5 (vai trò). Đọc file này trước khi sửa phần đăng nhập / tài khoản.
+> Đặc tả, liên quan CLAUDE.md mục 5 (bí mật) và mục 6 (vai trò). Đọc file này trước khi sửa phần đăng nhập / tài khoản.
 > Trạng thái: đã chốt 08/11/2026 (mục 9).
 
 ## 1. Mục tiêu
@@ -104,7 +104,7 @@ Quy tắc chung:
 | 4. `StaffPage`: thêm, email, đặt lại | Tạo → sao chép → đăng nhập được trên điện thoại; đặt lại → mật khẩu cũ hết hiệu lực, bị bắt đổi lại |
 | 5. `LoginPage`, trang Tài khoản | Không còn tab Đăng ký; đổi mật khẩu chủ động được |
 | 6. Tắt sign up trên Supabase | `supabase.auth.signUp` từ console trình duyệt bị từ chối |
-| Cuối | `npm run build`, `npm run lint` không lỗi; cập nhật CLAUDE.md (mục 4/5 + trỏ tới file này) |
+| Cuối | `npm run build`, `npm run lint` không lỗi; cập nhật CLAUDE.md (mục 5/6 + trỏ tới file này) |
 
 ## 9. Quyết định đã chốt (08/11/2026)
 

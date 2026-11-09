@@ -1,6 +1,6 @@
 # Dọn ảnh mồ côi trong Storage
 
-> Đặc tả + hướng dẫn cài đặt. Liên quan CLAUDE.md mục 10 (ảnh tải lên).
+> Đặc tả + hướng dẫn cài đặt. Liên quan CLAUDE.md mục 11 (ảnh tải lên).
 
 ## Vấn đề
 

@@ -25,7 +25,7 @@ Cahute hiện được thiết kế cho **một công ty duy nhất**:
 | Lưu số CCCD và vị trí nhân viên | Dữ liệu cá nhân nhạy cảm, có yêu cầu pháp lý (đã quyết định bỏ CCCD, xem 3.3) |
 | Quản lý nào cũng nâng/hạ quyền và xem hồ sơ mọi nhân viên | Không có cấp chủ doanh nghiệp; sau này quản lý sẽ xem được doanh thu toàn công ty |
 
-**Phần dùng lại được gần hết:** React + TypeScript + Vite, Supabase (Postgres + RLS, Auth, Realtime, Storage), TanStack Query, shadcn/ui (quản lý), Konsta UI (nhân viên), luật trạng thái việc, lịch sử trạng thái kèm vị trí, nén ảnh. Phần phải làm lại chủ yếu là **lớp phân quyền** (mục 5 của CLAUDE.md).
+**Phần dùng lại được gần hết:** React + TypeScript + Vite, Supabase (Postgres + RLS, Auth, Realtime, Storage), TanStack Query, shadcn/ui (quản lý), Konsta UI (nhân viên), luật trạng thái việc, lịch sử trạng thái kèm vị trí, nén ảnh. Phần phải làm lại chủ yếu là **lớp phân quyền** (mục 6 của CLAUDE.md).
 
 ## 3. Kiến trúc đề xuất: một database, tách dữ liệu theo công ty
 
@@ -94,7 +94,7 @@ Quy tắc:
 |---|---|
 | Supabase gói trả phí (Pro) | Không bị tạm dừng; sao lưu hằng ngày; cân nhắc sao lưu theo thời điểm (PITR) |
 | Tách 2 project Supabase: **staging** (thử) và **production** (thật) | Nhánh preview trên Vercel trỏ vào staging |
-| Ô bản đồ có cam kết: MapTiler hoặc Google Maps (API key giới hạn theo tên miền) | Thay OpenStreetMap France |
+| Bản đồ tự host (đã chốt 07/11/2026): file **PMTiles** khu vực Việt Nam (Protomaps, dữ liệu OpenStreetMap) đặt trên **Cloudflare R2**, hiển thị bằng thư viện Protomaps/MapLibre | Thay OpenStreetMap France. Không cần API key, không tính phí theo lượt tải. Giữ ghi công OpenStreetMap. Cập nhật file bản đồ định kỳ (ví dụ mỗi quý). Không cho khách tự nhập key Google Maps (chỉ cân nhắc cho khách hàng lớn yêu cầu riêng). Nút "Mở trên Google Maps" giữ nguyên (miễn phí, không cần key). Đọc `docs/location.md` trước khi làm |
 | Gửi email (mời, đặt lại mật khẩu): Resend hoặc Amazon SES | Dùng tên miền riêng, cấu hình SPF/DKIM |
 | Giám sát lỗi: Sentry (frontend + Edge Functions) | Biết lỗi trước khi khách báo |
 | CI trên GitHub Actions: build, lint, test (gồm test RLS) | Không deploy khi test hỏng |
@@ -156,4 +156,4 @@ Cahute lưu **vị trí** và thông tin nhân sự của nhân viên khách hà
 
 ## 9. Bước tiếp theo
 
-Chốt các quyết định ở mục 8 → Claude đề xuất **thiết kế database đa khách hàng chi tiết** (bảng, RLS, cách chuyển dữ liệu hiện có) để duyệt → viết migration và test RLS → cập nhật CLAUDE.md mục 5.
+Chốt các quyết định ở mục 8 → Claude đề xuất **thiết kế database đa khách hàng chi tiết** (bảng, RLS, cách chuyển dữ liệu hiện có) để duyệt → viết migration và test RLS → cập nhật CLAUDE.md mục 6.
