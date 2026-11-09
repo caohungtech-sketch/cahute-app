@@ -7,7 +7,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
-  Màu cho component shadcn/ui (src/components/shadcn), theo design system trong CLAUDE.md:
+  Màu cho component shadcn/ui (src/components/shadcn), theo docs/design-system.md:
   nút chính xanh lá, viền/chữ phụ theo thang gray (tự đổi ở chế độ tối nhờ khối html.dark bên dưới).
 */
 :root {
@@ -101,18 +101,23 @@ html.dark .bg-gray-900 {
   background-color: #020617; /* toast: giữ nền tối, chữ trắng */
 }
 
-/* Màu biểu đồ trạng thái (đã kiểm tra độ phân biệt cho người mù màu, cho cả hai nền) */
+/*
+  Màu biểu đồ trạng thái: cùng sắc với huy hiệu STATUS_STYLE (src/lib/taskStatus.ts) –
+  Chưa làm xám, Đang làm xanh dương, Tạm dừng vàng cam, Hoàn thành xanh lá.
+  Ba màu việc đang mở đã kiểm tra độ phân biệt cho người mù màu trên cả hai nền;
+  xám là chủ ý (trạng thái trung tính), biểu đồ luôn kèm chú thích tên + số.
+*/
 :root {
-  --chart-todo: #2a78d6;
-  --chart-in-progress: #eb6834;
-  --chart-paused: #1baf7a;
-  --chart-done: #eda100;
+  --chart-todo: #6b7280;
+  --chart-in-progress: #2563eb;
+  --chart-paused: #d97706;
+  --chart-done: #15803d;
 }
 html.dark {
-  --chart-todo: #3987e5;
-  --chart-in-progress: #d95926;
-  --chart-paused: #199e70;
-  --chart-done: #c98500;
+  --chart-todo: #7c8799;
+  --chart-in-progress: #3b82f6;
+  --chart-paused: #d97706;
+  --chart-done: #16a34a;
 }
 
 html,
